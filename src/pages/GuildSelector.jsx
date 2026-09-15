@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LogOut, ShieldCheck, CheckCircle2, Bot, ExternalLink, Sparkles, Award } from 'lucide-react';
 
 export default function GuildSelector({ user, onLogout }) {
-  const discordClientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1536736392313573506';
+  const discordClientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1548727060653023413';
   const botInviteUrl = `https://discord.com/oauth2/authorize?client_id=${discordClientId}&permissions=8&scope=bot%20applications.commands`;
 
   const [selectedPlan, setSelectedPlan] = useState(null);
