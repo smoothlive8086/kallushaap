@@ -1,0 +1,21 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://3.17.36.241:4071/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "http://3.17.36.241:4071/uploads/:path*"
+    },
+    {
+      "source": "/socket.io/:path*",
+      "destination": "http://3.17.36.241:4071/socket.io/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
