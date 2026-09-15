@@ -1,16 +1,63 @@
-import { useState } from 'react';
-import { LogOut, ShieldCheck, CheckCircle2, Bot, ExternalLink, Sparkles, Award } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LogOut, ShieldCheck, CheckCircle2, Bot, ExternalLink, Sparkles, Award, Palette, Clock, Check, Edit3 } from 'lucide-react';
+import { api } from '../utils/api';
+import PaymentRoleModal from '../components/PaymentRoleModal';
 
 export default function GuildSelector({ user, onLogout }) {
   const discordClientId = import.meta.env.VITE_DISCORD_CLIENT_ID || '1548727060653023413';
   const botInviteUrl = `https://discord.com/oauth2/authorize?client_id=${discordClientId}&permissions=8&scope=bot%20applications.commands`;
 
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [myRoles, setMyRoles] = useState([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#a855f7');
+  const [updating, setUpdating] = useState(false);
 
-  const handleSelectPackage = (planName, price) => {
-    setSelectedPlan(planName);
-    // Redirect to bot invite or handle purchase action
-    window.open(botInviteUrl, '_blank');
+  useEffect(() => {
+    fetchMyRoles();
+  }, []);
+
+  const fetchMyRoles = async () => {
+    setLoadingRoles(true);
+    try {
+      const data = await api.getMyPurchasedRoles();
+      if (Array.isArray(data)) {
+        setMyRoles(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user roles:', err);
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  const handleSelectPackage = (name, price) => {
+    setSelectedPlan({ name, price });
+  };
+
+  const handleEditRole = (role) => {
+    setEditingRole(role);
+    setEditName(role.roleName);
+    setEditColor(role.roleColor);
+  };
+
+  const handleSaveRoleEdit = async () => {
+    if (!editingRole) return;
+    setUpdating(true);
+    try {
+      await api.updatePurchasedRole(editingRole._id, {
+        roleName: editName,
+        roleColor: editColor
+      });
+      setEditingRole(null);
+      fetchMyRoles();
+    } catch (err) {
+      alert('Failed to update role: ' + err.message);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -155,7 +202,7 @@ export default function GuildSelector({ user, onLogout }) {
                 Discord Account Authorized!
               </div>
               <div style={{ fontSize: '0.88rem', color: '#4b5563' }}>
-                Select a premium package below to activate exclusive features for <strong>@{user.username}</strong>
+                Select a premium package below to create & get your automatic custom role for <strong>@{user.username}</strong>
               </div>
             </div>
           </div>
@@ -184,7 +231,104 @@ export default function GuildSelector({ user, onLogout }) {
           </a>
         </div>
 
-        {/* 3-Tier Premium Feature Packages Section (Image 2) */}
+        {/* ACTIVE CUSTOM ROLES SECTION (If user has purchases) */}
+        {myRoles.length > 0 && (
+          <div style={{
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            padding: '24px',
+            marginBottom: '36px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            border: '1px solid rgba(0,0,0,0.08)'
+          }}>
+            <h3 style={{
+              margin: '0 0 16px 0',
+              fontSize: '1.25rem',
+              fontWeight: '800',
+              color: '#15803d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <Sparkles size={20} color="#15803d" />
+              Your Active Custom Roles
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              {myRoles.map((role) => (
+                <div
+                  key={role._id}
+                  style={{
+                    padding: '18px',
+                    borderRadius: '14px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fafafa',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        backgroundColor: role.roleColor,
+                        boxShadow: `0 0 8px ${role.roleColor}88`
+                      }} />
+                      <strong style={{ fontSize: '1.05rem', color: role.roleColor }}>
+                        {role.roleName}
+                      </strong>
+                    </div>
+
+                    <button
+                      onClick={() => handleEditRole(role)}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit3 size={14} /> Edit
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>
+                    Server: <strong>{role.guildName}</strong>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                    <span style={{
+                      padding: '3px 10px',
+                      borderRadius: '10px',
+                      fontWeight: '700',
+                      backgroundColor: role.status === 'ASSIGNED' ? '#dcfce7' : '#fef3c7',
+                      color: role.status === 'ASSIGNED' ? '#15803d' : '#d97706'
+                    }}>
+                      {role.status === 'ASSIGNED' ? 'ASSIGNED IN SERVER' : 'WAITING FOR USER TO JOIN SERVER'}
+                    </span>
+
+                    <span style={{ color: '#6b7280' }}>
+                      Exp: {new Date(role.expiresAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3-Tier Premium Feature Packages Section */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
@@ -257,7 +401,7 @@ export default function GuildSelector({ user, onLogout }) {
             }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
-                <span>🎨 Custom Role</span>
+                <span>🎨 Custom Role (Auto-created)</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
@@ -384,7 +528,7 @@ export default function GuildSelector({ user, onLogout }) {
             }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
-                <span>🎨 Custom Role</span>
+                <span>🎨 Custom Role (Auto-created)</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
@@ -500,7 +644,7 @@ export default function GuildSelector({ user, onLogout }) {
             }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
-                <span>🎨 Custom Role (priority color)</span>
+                <span>🎨 Custom Role (Auto-created)</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem', color: '#374151' }}>
                 <CheckCircle2 size={18} color="#4a7c3e" style={{ flexShrink: 0 }} />
@@ -552,6 +696,120 @@ export default function GuildSelector({ user, onLogout }) {
 
       </main>
 
+      {/* Payment & Role Modal */}
+      {selectedPlan && (
+        <PaymentRoleModal
+          plan={selectedPlan}
+          user={user}
+          onClose={() => setSelectedPlan(null)}
+          onSuccess={() => {
+            fetchMyRoles();
+          }}
+        />
+      )}
+
+      {/* Edit Role Modal */}
+      {editingRole && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '1.2rem', fontWeight: '800', color: '#111827' }}>
+              Edit Custom Role
+            </h3>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>
+                Role Name:
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '0.95rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', marginBottom: '6px' }}>
+                Role Colour:
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="color"
+                  value={editColor}
+                  onChange={(e) => setEditColor(e.target.value)}
+                  style={{ width: '40px', height: '40px', borderRadius: '8px', border: 'none', cursor: 'pointer', padding: 0 }}
+                />
+                <input
+                  type="text"
+                  value={editColor}
+                  onChange={(e) => setEditColor(e.target.value)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', fontFamily: 'monospace' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setEditingRole(null)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: '#ffffff',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={updating}
+                onClick={handleSaveRoleEdit}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#15803d',
+                  color: '#ffffff',
+                  fontWeight: '700',
+                  cursor: updating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {updating ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer style={{
         marginTop: '60px',
@@ -564,4 +822,3 @@ export default function GuildSelector({ user, onLogout }) {
     </div>
   );
 }
-
