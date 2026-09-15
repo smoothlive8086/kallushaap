@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
-import { ArrowRight, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
-export default function LandingPage({ onDemoLogin, onOpenDashboard, onOpenShop, onOpenAdminLogin }) {
+export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleConnectDiscord = async () => {
+  const handleLogin = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -14,7 +14,7 @@ export default function LandingPage({ onDemoLogin, onOpenDashboard, onOpenShop, 
       window.location.href = url;
     } catch (err) {
       console.error(err);
-      setError('Could not connect to backend OAuth server. Please ensure backend is running.');
+      setError('Failed to contact the backend server. Make sure it is running.');
       setLoading(false);
     }
   };
@@ -22,241 +22,210 @@ export default function LandingPage({ onDemoLogin, onOpenDashboard, onOpenShop, 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f4f3ea',
+      backgroundColor: '#f5f4eb',
+      color: '#1f2937',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '24px 20px',
+      padding: '24px 20px 40px 20px',
+      fontFamily: "'Inter', sans-serif",
       boxSizing: 'border-box'
     }}>
-      
-      {/* Navbar Header */}
+      {/* Top Navigation Bar */}
       <header style={{
+        maxWidth: '900px',
         width: '100%',
-        maxWidth: '1200px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 24px',
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        border: '1px solid #e2dfd2',
-        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)'
+        padding: '12px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+        border: '1px solid rgba(0, 0, 0, 0.06)',
+        marginBottom: '48px'
       }}>
+        {/* Header Left Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
-            backgroundColor: '#3a7d34',
-            color: '#ffffff',
+            backgroundColor: '#15803d',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.3rem',
-            fontWeight: '800',
-            boxShadow: '0 4px 10px rgba(58, 125, 52, 0.25)'
+            fontSize: '1.4rem'
           }}>
             🌴
           </div>
           <span style={{
             fontSize: '1.4rem',
-            fontWeight: '900',
-            color: '#1b261a',
-            fontFamily: 'Outfit, sans-serif',
-            letterSpacing: '-0.02em'
+            fontWeight: '800',
+            color: '#15803d',
+            fontFamily: "'Outfit', 'Noto Sans Malayalam', sans-serif"
           }}>
             കള്ള് ഷാപ്പ്
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {onOpenDashboard && (
-            <button
-              onClick={onOpenDashboard}
-              style={{
-                backgroundColor: '#10b981',
-                color: '#ffffff',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
-              }}
-            >
-              📊 Bot Dashboard
-            </button>
-          )}
-
-          {onOpenAdminLogin && (
-            <button
-              onClick={onOpenAdminLogin}
-              style={{
-                backgroundColor: '#6366f1',
-                color: '#ffffff',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
-              }}
-            >
-              🛡️ Admin Portal
-            </button>
-          )}
-
-          <button 
-            onClick={handleConnectDiscord}
+        {/* Header Right Action (Only Connect Discord - Bot Dashboard and Admin Portal options removed) */}
+        <div>
+          <button
+            onClick={handleLogin}
             disabled={loading}
             style={{
               backgroundColor: '#5865F2',
               color: '#ffffff',
+              border: 'none',
+              padding: '10px 22px',
+              borderRadius: '10px',
               fontWeight: '700',
               fontSize: '0.9rem',
-              padding: '10px 20px',
-              borderRadius: '10px',
-              border: 'none',
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 12px rgba(88, 101, 242, 0.25)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#4752c4';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#5865F2';
-              e.currentTarget.style.transform = 'translateY(0)';
+              boxShadow: '0 4px 12px rgba(88, 101, 242, 0.25)',
+              transition: 'all 0.2s ease'
             }}
           >
-            {loading ? 'Connecting...' : 'Connect Discord'}
+            Connect Discord
           </button>
         </div>
       </header>
 
-      {/* Main Connect Section */}
+      {/* Main Center Content */}
       <main style={{
-        maxWidth: '800px',
+        maxWidth: '750px',
         width: '100%',
-        textAlign: 'center',
-        margin: '60px 0',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        textAlign: 'center',
+        flex: 1,
+        justifyContent: 'center'
       }}>
         
-        {/* Bot Icon */}
+        {/* Palm Tree Circular Icon */}
         <div style={{
-          width: '110px',
-          height: '110px',
+          width: '90px',
+          height: '90px',
           borderRadius: '50%',
-          backgroundColor: '#eaf4e8',
-          border: '3px solid #3a7d34',
+          backgroundColor: '#dcfce7',
+          border: '3px solid #16a34a',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '3.5rem',
-          marginBottom: '24px',
-          boxShadow: '0 12px 30px rgba(58, 125, 52, 0.2)'
+          fontSize: '3rem',
+          marginBottom: '20px',
+          boxShadow: '0 10px 25px rgba(22, 163, 74, 0.15)'
         }}>
           🌴
         </div>
 
-        {/* Bot Name */}
+        {/* Malayalam Main Heading */}
         <h1 style={{
-          fontSize: 'clamp(2.8rem, 5vw, 4.2rem)',
+          fontSize: 'clamp(2.8rem, 6vw, 4.2rem)',
           fontWeight: '900',
-          color: '#1b261a',
-          letterSpacing: '-0.03em',
-          lineHeight: '1.1',
-          marginBottom: '14px'
+          color: '#15803d',
+          marginBottom: '8px',
+          fontFamily: "'Outfit', 'Noto Sans Malayalam', sans-serif",
+          letterSpacing: '-0.02em',
+          lineHeight: '1.1'
         }}>
           കള്ള് ഷാപ്പ്
         </h1>
 
-        <p style={{
+        {/* Subtitle */}
+        <h2 style={{
           fontSize: '1.25rem',
-          fontWeight: '600',
-          color: '#3a7d34',
-          marginBottom: '16px'
+          fontWeight: '700',
+          color: '#16a34a',
+          marginBottom: '20px'
         }}>
           Discord Bot Web Dashboard
-        </p>
+        </h2>
 
+        {/* Description Text */}
         <p style={{
           fontSize: '1.05rem',
           color: '#4b5563',
-          maxWidth: '580px',
+          maxWidth: '600px',
           lineHeight: '1.6',
-          marginBottom: '36px'
+          marginBottom: '32px'
         }}>
           Connect your Discord account to unlock access to our exclusive Premium Shop, custom roles, soundboard access, XP boosts, auto reactions, and more!
         </p>
 
         {error && (
           <div style={{
-            backgroundColor: '#fee2e2',
+            padding: '12px 20px',
+            backgroundColor: '#fef2f2',
             border: '1px solid #fca5a5',
             color: '#dc2626',
-            padding: '12px 20px',
-            borderRadius: '12px',
-            fontSize: '0.9rem',
+            borderRadius: '10px',
             marginBottom: '24px',
+            fontSize: '0.9rem',
             maxWidth: '500px'
           }}>
             {error}
           </div>
         )}
 
-        {/* Large Connect Discord CTA Button */}
-        <button 
-          onClick={handleConnectDiscord}
+        {/* Main Connect Discord Button */}
+        <button
+          onClick={handleLogin}
           disabled={loading}
-          className="btn-discord"
           style={{
-            fontSize: '1.2rem',
-            padding: '18px 44px',
-            borderRadius: '16px',
+            backgroundColor: '#5865F2',
+            color: '#ffffff',
+            border: 'none',
+            padding: '16px 36px',
+            borderRadius: '14px',
+            fontSize: '1.1rem',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 8px 24px rgba(88, 101, 242, 0.35)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             marginBottom: '20px'
           }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
         >
-          <svg width="26" height="26" viewBox="0 0 127.14 96.36" fill="currentColor">
-            <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C-3.66,42.5-9.84,76.19,10,95.91a105.73,105.73,0,0,0,32,16.29,80.59,80.59,0,0,0,6.83-11.16A68.61,68.61,0,0,1,38.31,95a55.15,55.15,0,0,0,3.75-2.93,74.9,74.9,0,0,0,67.65,0c1.25.93,2.5,1.92,3.75,2.93a68.46,68.46,0,0,1-10.57,6A81,81,0,0,0,109.73,112.2a105.73,105.73,0,0,0,32-16.29C138,76.19,131.79,42.5,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
+          <svg width="24" height="18" viewBox="0 0 127.14 96.36" fill="currentColor">
+            <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-18.91-72.15ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,45.92,53.89,53C53.89,60,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5.07-12.74,11.44-12.74S96.23,45.92,96.12,53C96.12,60,91.08,65.69,84.69,65.69Z"/>
           </svg>
-          {loading ? 'Connecting to Discord...' : 'Connect with Discord'}
+          <span>{loading ? 'Connecting to Discord...' : 'Connect with Discord'}</span>
         </button>
 
-        <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '8px' }}>
-          🔒 Secure OAuth2 Authentication with Discord
-        </p>
+        {/* Security Note */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          color: '#6b7280',
+          fontSize: '0.85rem'
+        }}>
+          <Lock size={14} />
+          <span>Secure OAuth2 Authentication with Discord</span>
+        </div>
+
       </main>
 
       {/* Footer */}
       <footer style={{
-        textAlign: 'center',
-        padding: '16px',
+        marginTop: '60px',
         color: '#6b7280',
-        fontSize: '0.85rem'
+        fontSize: '0.85rem',
+        textAlign: 'center'
       }}>
-        © {new Date().getFullYear()} <strong>കള്ള് ഷാപ്പ്</strong> Discord Bot. All rights reserved.
+        © 2026 <strong>കള്ള് ഷാപ്പ്</strong> Discord Bot. All rights reserved.
       </footer>
-
     </div>
   );
 }
+
