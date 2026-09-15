@@ -1,34 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import LandingPage from './pages/LandingPage';
-import PremiumShop from './pages/PremiumShop';
-import Dashboard from './pages/Dashboard';
-import AdminLogin from './pages/AdminLogin';
+import GuildSelector from './pages/GuildSelector';
 import { setToken, setUser, getUser, api } from './utils/api';
 
 export default function App() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const isDemo = urlParams.get('demo') === 'true';
-  const initialUser = getUser() || (isDemo ? { id: '999', username: 'DemoUser', avatar: '' } : null);
-
-  const getInitialView = () => {
-    const path = window.location.pathname.toLowerCase();
-    const search = new URLSearchParams(window.location.search);
-    const viewParam = search.get('view')?.toLowerCase();
-
-    if (path.includes('/admin/login') || viewParam === 'admin-login' || viewParam === 'login') {
-      return 'admin-login';
-    }
-    if (path.includes('/dashboard') || path.includes('/admin') || viewParam === 'dashboard' || viewParam === 'admin' || isDemo) {
-      return 'dashboard';
-    }
-    if (viewParam === 'shop') {
-      return 'shop';
-    }
-    return initialUser ? 'dashboard' : 'landing';
-  };
-
-  const [user, setCurrentUser] = useState(initialUser);
-  const [view, setView] = useState(getInitialView);
+  const [user, setCurrentUser] = useState(getUser());
+  const [view, setView] = useState(getUser() ? 'authorized' : 'landing');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
   const isExchanging = useRef(false);
@@ -51,12 +28,12 @@ export default function App() {
           setUser(discordUser);
           
           setCurrentUser(discordUser);
-          setView('dashboard');
+          setView('authorized');
 
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (err) {
           console.error(err);
-          setAuthError(err.message || 'Authentication with Discord failed. Please try again.');
+          setAuthError('Authentication with Discord failed. Please try again.');
           setView('landing');
         } finally {
           setAuthLoading(false);
@@ -76,27 +53,16 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f4f3ea',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'column',
-        gap: '20px',
-        color: '#1b261a',
-        fontFamily: 'Outfit, sans-serif'
-      }}>
+      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '20px' }}>
         <div style={{
-          width: '54px',
-          height: '54px',
-          border: '5px solid rgba(58, 125, 52, 0.15)',
-          borderTopColor: '#3a7d34',
+          width: '50px',
+          height: '50px',
+          border: '5px solid rgba(37, 99, 235, 0.1)',
+          borderTopColor: 'var(--primary)',
           borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite'
+          animation: 'spin 1s linear infinite'
         }} />
-        <h3 style={{ fontWeight: '800', fontSize: '1.3rem' }}>Authenticating with Discord...</h3>
-        <p style={{ color: '#5e6d5c' }}>Connecting account to <strong>കള്ള് ഷാപ്പ്</strong></p>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: '700' }}>Authorizing Discord Account with കള്ള് ഷാപ്പ്...</h3>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes spin {
             to { transform: rotate(360deg); }
@@ -107,74 +73,39 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: view === 'dashboard' ? '#0f172a' : '#f4f3ea' }}>
+    <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden', backgroundColor: '#f5f4eb' }}>
+      
       {authError && (
-        <div style={{
+        <div className="glass-panel" style={{
           position: 'fixed',
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: '#ef4444',
+          backgroundColor: 'rgba(244, 63, 94, 0.9)',
+          borderColor: 'var(--danger)',
           color: 'white',
           padding: '12px 24px',
-          borderRadius: '10px',
-          zIndex: 1000,
-          boxShadow: '0 8px 20px rgba(239, 68, 68, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          fontWeight: '600'
+          borderRadius: '8px',
+          zIndex: 1000
         }}>
-          <span>{authError}</span>
+          {authError}
           <button 
             onClick={() => setAuthError(null)} 
-            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem' }}
+            style={{ marginLeft: '12px', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
           >
             ×
           </button>
         </div>
       )}
 
-      {/* Landing Page */}
-      {view === 'landing' && (
-        <LandingPage 
-          onOpenDashboard={() => setView('dashboard')}
-          onOpenShop={() => setView('shop')}
-          onOpenAdminLogin={() => setView('admin-login')}
-        />
-      )}
-
-      {/* Premium Shop */}
-      {view === 'shop' && (
-        <PremiumShop 
+      {view === 'landing' || !user ? (
+        <LandingPage />
+      ) : (
+        <GuildSelector 
           user={user} 
-          onLogout={handleLogout}
-          onBackToHome={() => setView('landing')}
-          onOpenDashboard={() => setView('dashboard')}
-        />
-      )}
-
-      {/* Bot Dashboard */}
-      {view === 'dashboard' && (
-        <Dashboard
-          user={user}
-          onLogout={handleLogout}
-          onBack={() => setView('landing')}
-          onOpenShop={() => setView('shop')}
-        />
-      )}
-
-      {/* Admin Login */}
-      {view === 'admin-login' && (
-        <AdminLogin 
-          onBack={() => setView('landing')}
-          onLoginSuccess={(adminUser) => {
-            setCurrentUser(adminUser);
-            setView('dashboard');
-          }}
+          onLogout={handleLogout} 
         />
       )}
     </div>
   );
 }
-
