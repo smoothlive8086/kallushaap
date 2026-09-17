@@ -129,34 +129,13 @@ export default function LandingPage() {
           fontSize: 'clamp(2.8rem, 6vw, 4.2rem)',
           fontWeight: '900',
           color: '#15803d',
-          marginBottom: '8px',
+          marginBottom: '32px',
           fontFamily: "'Outfit', 'Noto Sans Malayalam', sans-serif",
           letterSpacing: '-0.02em',
           lineHeight: '1.1'
         }}>
           കള്ള് ഷാപ്പ്
         </h1>
-
-        {/* Subtitle */}
-        <h2 style={{
-          fontSize: '1.25rem',
-          fontWeight: '700',
-          color: '#16a34a',
-          marginBottom: '20px'
-        }}>
-          Discord Bot Web Dashboard
-        </h2>
-
-        {/* Description Text */}
-        <p style={{
-          fontSize: '1.05rem',
-          color: '#4b5563',
-          maxWidth: '600px',
-          lineHeight: '1.6',
-          marginBottom: '32px'
-        }}>
-          Connect your Discord account to unlock access to our exclusive Premium Shop, custom roles, soundboard access, XP boosts, auto reactions, and more!
-        </p>
 
         {error && (
           <div style={{
