@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../utils/api';
-import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save } from 'lucide-react';
+import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare } from 'lucide-react';
 import { io } from 'socket.io-client';
 
 const Youtube = ({ size = 24, className = '', style = {} }) => (
@@ -89,33 +89,166 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   const [applyingBulk, setApplyingBulk] = useState(false);
   const logContainerRef = useRef(null);
 
-  // YouTube tab states and handlers
+  // Member Leveling & XP States
+  const [levelStats, setLevelStats] = useState(null);
+  const [levelMembers, setLevelMembers] = useState([]);
+  const [loadingLevelData, setLoadingLevelData] = useState(false);
+  const [levelSearchQuery, setLevelSearchQuery] = useState('');
+  const [newLevelRewardLevel, setNewLevelRewardLevel] = useState(1);
+  const [newLevelRewardRoleId, setNewLevelRewardRoleId] = useState('');
+  const [levelEditMember, setLevelEditMember] = useState(null);
+  const [levelEditXpAction, setLevelEditXpAction] = useState('add');
+  const [levelEditXpAmount, setLevelEditXpAmount] = useState('100');
+
+  // Server settings state
   const [settings, setSettings] = useState(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
-  const [resolvingChannel, setResolvingChannel] = useState(false);
-  const [resolveSuccessMsg, setResolveSuccessMsg] = useState('');
 
-  const fetchSettings = async () => {
+  const fetchLevelData = async () => {
     try {
-      setLoadingSettings(true);
+      setLoadingLevelData(true);
       setErrorMsg(null);
-      const sData = await api.getSettings(guildId);
-      setSettings(sData);
-      setSavedSettings(JSON.parse(JSON.stringify(sData)));
+      const [sData, stats, lData] = await Promise.all([
+        api.getSettings(guildId).catch(() => null),
+        api.getLevelStats(guildId).catch(() => null),
+        api.getLevelLeaderboard(guildId, { search: levelSearchQuery }).catch(() => ({ members: [] }))
+      ]);
+
+      if (sData) {
+        setSettings(sData);
+        setSavedSettings(JSON.parse(JSON.stringify(sData)));
+      }
+      if (stats) setLevelStats(stats);
+      if (lData && lData.members) setLevelMembers(lData.members);
+      fetchRoles();
     } catch (err) {
-      console.error('Failed to fetch settings in Admin Portal:', err);
-      setErrorMsg('Failed to fetch guild configuration settings.');
+      console.error('Failed to fetch level data in Admin Portal:', err);
+      setErrorMsg('Failed to fetch server level data.');
     } finally {
-      setLoadingSettings(false);
+      setLoadingLevelData(false);
     }
   };
 
   useEffect(() => {
-    if (activeSubTab === 'youtube') {
-      fetchSettings();
-      fetchRoles();
+    if (activeSubTab === 'levels') {
+      fetchLevelData();
     }
-  }, [activeSubTab, guildId]);
+  }, [activeSubTab, guildId, levelSearchQuery]);
+
+  const handleAddLevelRoleReward = () => {
+    const levelNum = parseInt(newLevelRewardLevel);
+    if (isNaN(levelNum) || levelNum <= 0) {
+      alert('Please enter a valid target level number (e.g. 1, 5, 10).');
+      return;
+    }
+    if (!newLevelRewardRoleId) {
+      alert('Please select a Discord role to award at this level.');
+      return;
+    }
+
+    const roleObj = serverRoles.find(r => r.id === newLevelRewardRoleId);
+    const roleName = roleObj ? roleObj.name : 'Role';
+
+    setSettings(prev => {
+      const currentRoles = prev?.leveling?.levelRoles || [];
+      const updatedRoles = [...currentRoles.filter(r => r.level !== levelNum), { level: levelNum, roleId: newLevelRewardRoleId, roleName }];
+      updatedRoles.sort((a, b) => a.level - b.level);
+
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          levelRoles: updatedRoles
+        }
+      };
+    });
+
+    setNewLevelRewardRoleId('');
+  };
+
+  const handleRemoveLevelRoleReward = (index) => {
+    setSettings(prev => {
+      const currentRoles = prev?.leveling?.levelRoles || [];
+      const updatedRoles = currentRoles.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          levelRoles: updatedRoles
+        }
+      };
+    });
+  };
+
+  const handleSaveLevelingSettings = async () => {
+    setSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const updated = await api.saveSettings(guildId, settings);
+      setSettings(updated);
+      setSavedSettings(JSON.parse(JSON.stringify(updated)));
+      setSuccessMsg('Server Leveling & Level Role Rewards settings saved successfully!');
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Failed to save leveling settings: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateMemberXpSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!levelEditMember || !levelEditMember.userId) {
+      alert('Please enter a target User ID.');
+      return;
+    }
+
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.updateUserXp(guildId, levelEditMember.userId, {
+        action: levelEditXpAction,
+        amount: levelEditXpAmount
+      });
+      setSuccessMsg(res.message || 'User XP updated successfully!');
+      setLevelEditMember(null);
+      fetchLevelData();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || 'Failed to update member XP.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetSingleMemberXp = async (userId) => {
+    if (!window.confirm('Are you sure you want to reset XP and level data for this user?')) return;
+    try {
+      const res = await api.resetUserXp(guildId, userId);
+      setSuccessMsg(res.message || 'User XP reset successfully.');
+      fetchLevelData();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || 'Failed to reset user XP.');
+    }
+  };
+
+  const handleResetServerLeaderboard = async () => {
+    if (!window.confirm('⚠️ CRITICAL WARNING: Are you sure you want to reset the entire XP leaderboard for this server? All member XP and levels will be deleted.')) return;
+    try {
+      const res = await api.resetAllXp(guildId);
+      setSuccessMsg(res.message || 'Server XP leaderboard reset successfully.');
+      fetchLevelData();
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || 'Failed to reset server leaderboard.');
+    }
+  };
 
   const handleInputChange = (path, value) => {
     const parts = path.split('.');
@@ -883,39 +1016,25 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         </button>
         <button
           type="button"
-          onClick={() => handleSubTabClick('bulk-nicknames')}
+          onClick={() => handleSubTabClick('levels')}
           style={{
             background: 'none',
             border: 'none',
-            color: activeSubTab === 'bulk-nicknames' ? '#ffffff' : 'var(--text-secondary)',
+            color: activeSubTab === 'levels' ? '#ffffff' : 'var(--text-secondary)',
             fontSize: '0.95rem',
-            fontWeight: activeSubTab === 'bulk-nicknames' ? '700' : '400',
+            fontWeight: activeSubTab === 'levels' ? '700' : '400',
             cursor: 'pointer',
             padding: '10px 16px',
-            borderBottom: activeSubTab === 'bulk-nicknames' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom: activeSubTab === 'levels' ? '2px solid var(--primary)' : '2px solid transparent',
             transition: 'all 0.2s ease',
-            fontFamily: 'Outfit'
+            fontFamily: 'Outfit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}
         >
-          Bulk Nicknames
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSubTabClick('youtube')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: activeSubTab === 'youtube' ? '#ffffff' : 'var(--text-secondary)',
-            fontSize: '0.95rem',
-            fontWeight: activeSubTab === 'youtube' ? '700' : '400',
-            cursor: 'pointer',
-            padding: '10px 16px',
-            borderBottom: activeSubTab === 'youtube' ? '2px solid var(--primary)' : '2px solid transparent',
-            transition: 'all 0.2s ease',
-            fontFamily: 'Outfit'
-          }}
-        >
-          YouTube Announcements
+          <Award size={16} color="#eab308" />
+          XP & Member Levels
         </button>
       </div>
 
@@ -2464,6 +2583,81 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   {saving && <Loader size={14} className="spin" />}
                   Save Roles
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Member XP & Level Edit Modal */}
+      {levelEditMember && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '24px', borderRadius: '16px', background: '#181824', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Award size={20} color="#eab308" /> Manage Member XP & Level
+              </h3>
+              <X size={20} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setLevelEditMember(null)} />
+            </div>
+
+            {levelEditMember.username ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.04)', marginBottom: '16px' }}>
+                <img src={levelEditMember.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                <div>
+                  <div style={{ fontWeight: '700', color: '#fff' }}>{levelEditMember.username}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#eab308' }}>Level {levelEditMember.level} • {(levelEditMember.xp || 0).toLocaleString()} XP</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Target Discord User ID</label>
+                <input
+                  type="text"
+                  placeholder="Enter User ID (e.g. 123456789012345678)"
+                  value={levelEditMember.userId || ''}
+                  onChange={(e) => setLevelEditMember({ ...levelEditMember, userId: e.target.value })}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  required
+                />
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateMemberXpSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Action</label>
+                <select
+                  value={levelEditXpAction}
+                  onChange={(e) => setLevelEditXpAction(e.target.value)}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                >
+                  <option value="add">Add XP (+)</option>
+                  <option value="remove">Remove XP (-)</option>
+                  <option value="set">Set Exact Total XP (=)</option>
+                  <option value="setLevel">Set Level Directly (Lv. X)</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
+                  {levelEditXpAction === 'setLevel' ? 'Target Level Number' : 'XP Amount'}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={levelEditXpAmount}
+                  onChange={(e) => setLevelEditXpAmount(e.target.value)}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  placeholder={levelEditXpAction === 'setLevel' ? 'e.g. 5' : 'e.g. 100'}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" className="btn-secondary" onClick={() => setLevelEditMember(null)}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={saving}>Update Member</button>
               </div>
             </form>
           </div>
