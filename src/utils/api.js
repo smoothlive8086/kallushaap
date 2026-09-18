@@ -141,6 +141,22 @@ export const api = {
   updatePaymentSettings: (data) => request('/admin/payment-settings', {
     method: 'POST',
     body: JSON.stringify(data)
-  })
+  }),
+  // Member XP & Leveling API Endpoints
+  getLevelLeaderboard: (guildId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/guilds/${guildId}/levels/leaderboard?${query}`);
+  },
+  updateUserXp: (guildId, userId, data) => request(`/guilds/${guildId}/levels/user/${userId}/xp`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  resetUserXp: (guildId, userId) => request(`/guilds/${guildId}/levels/reset-user/${userId}`, {
+    method: 'POST'
+  }),
+  resetAllXp: (guildId) => request(`/guilds/${guildId}/levels/reset-all`, {
+    method: 'POST'
+  }),
+  getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`)
 };
 

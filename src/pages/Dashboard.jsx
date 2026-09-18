@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { io } from 'socket.io-client';
-import CropModal from '../components/CropModal';
 import AdminServerSettings from '../components/AdminServerSettings';
 import {
   Shield,
@@ -58,15 +57,15 @@ const Youtube = ({ size = 24, className = '', style = {} }) => (
 
 
 const EMOJI_CATEGORIES = [
-  { id: 'smileys', icon: '😀', label: 'Smileys & Emotion', list: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','😮','😯','😲','😳','🥺','😦','😧','😮‍💨','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','🔥','✨','💥','💯','❤️','💖','🙏','👍','👎','👏','🙌','👑'] },
-  { id: 'people', icon: '👋', label: 'People & Body', list: ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','👑','🧢','👒','🎓','🎩'] },
-  { id: 'animals', icon: '🐶', label: 'Animals & Nature', list: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🐙','🦑','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆'] },
-  { id: 'food', icon: '🍕', label: 'Food & Drink', list: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥔','🥕','🌽','🌶️','🫑','🥒','🥬','🥦','🧄','🧅','🍄','🥜','🍞','🥐','🥖','🫓','🥨','🥯','🥞','🧇','🧀','🍖','🍗','🥩','🥓','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥙','🧆','🥚','🍳','🥘','🍲','🥗','🍿','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🥟','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🥛','☕','🫖','🍵','🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🥤'] },
-  { id: 'activities', icon: '⚽', label: 'Activities & Sports', list: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🎿','🏂','🏋️','🤼','🤸','⛹️','🤺','🤾','🧘','🏄','🏊','🚣','🧗','🚵','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎫','🎟️','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎵','🎶','🎙️','🎸','🎹','🎺','🎻','🥁','🎲','♟️','🎯',' bowling','🎮','🎰','🧩'] },
-  { id: 'travel', icon: '🚗', label: 'Travel & Places', list: ['🚗','🚕','🚙','🚌','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🛵','🚲','🛴','🚨','🚘','✈️','🛫','🛬','🛸','🚀','🛰️','🚁','🛶','⛵','🚤','🛳️','⚓','⛽','🚧','🚦','🗺️','🗿','🗽','<ctrl42>','🏰','🏯','🏟️','🎡','🎢','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','🏠','🏡','🏙️','🌅','🌄','🌇','🌆','🌃','🌌'] },
-  { id: 'objects', icon: '💡', label: 'Objects & Tools', list: ['⌚','📱','📲','💻','⌨️','🖥️','🖨️','🖱️','🕹️','💽','💾','💿','📀','📷','📸','📹','🎥','📽️','📻','🎙️','⏱️','⏲️','⏰','🕰️','⌛','⏳','📡','🔋','🔌','💡','🔦','🕯️','💸','💵','💴','💶','💷','🪙','💰','💳','💎','⚖️','🪜','🧰','🔧','🔨','⚒️','🛠️','⛏️','⚙️','💣','🔪','🗡️','⚔️','🛡️','🔮','📿','🔑','🗝️','🔒','🔓'] },
-  { id: 'symbols', icon: '🔣', label: 'Symbols & Icons', list: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','<ctrl42>','☯️','☦️','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','⚛️','☢️','☣️','📴','📳','🈶','🈚','🆚','🅰️','🅱️','🆎','🅾️','🆘','❌','⭕','🛑','⛔','🚫','💯','💢','♨️','❗','❕','❓','❔','‼️','⁉️','⚠️','🔱','⚜️','🔰','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🚻','🧹','💬','💭','🛑','✅','☑️','✔️','✖️','❌','➕','➖','➗','♾️'] },
-  { id: 'flags', icon: '🚩', label: 'Flags', list: ['🚩','🏳️','🏴','🏁','🚩','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇺🇸','🇬🇧','🇮🇳','🇨🇦','🇦🇺','🇩🇪','🇫🇷','🇯🇵','🇰🇷','🇨🇳','🇧🇷','🇲🇽','🇮🇹','🇪🇸','🇷🇺'] }
+  { id: 'smileys', icon: '😀', label: 'Smileys & Emotion', list: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😮‍💨', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '🔥', '✨', '💥', '💯', '❤️', '💖', '🙏', '👍', '👎', '👏', '🙌', '👑'] },
+  { id: 'people', icon: '👋', label: 'People & Body', list: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '👑', '🧢', '👒', '🎓', '🎩'] },
+  { id: 'animals', icon: '🐶', label: 'Animals & Nature', list: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆'] },
+  { id: 'food', icon: '🍕', label: 'Food & Drink', list: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🍞', '🥐', '🥖', '🫓', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥗', '🍿', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🥟', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🥛', '☕', '🫖', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤'] },
+  { id: 'activities', icon: '⚽', label: 'Activities & Sports', list: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🎿', '🏂', '🏋️', '🤼', '🤸', '⛹️', '🤺', '🤾', '🧘', '🏄', '🏊', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎫', '🎟️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎵', '🎶', '🎙️', '🎸', '🎹', '🎺', '🎻', '🥁', '🎲', '♟️', '🎯', ' bowling', '🎮', '🎰', '🧩'] },
+  { id: 'travel', icon: '🚗', label: 'Travel & Places', list: ['🚗', '🚕', '🚙', '🚌', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚨', '🚘', '✈️', '🛫', '🛬', '🛸', '🚀', '🛰️', '🚁', '🛶', '⛵', '🚤', '🛳️', '⚓', '⛽', '🚧', '🚦', '🗺️', '🗿', '🗽', '<ctrl42>', '🏰', '🏯', '🏟️', '🎡', '🎢', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '🏠', '🏡', '🏙️', '🌅', '🌄', '🌇', '🌆', '🌃', '🌌'] },
+  { id: 'objects', icon: '💡', label: 'Objects & Tools', list: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🕹️', '💽', '💾', '💿', '📀', '📷', '📸', '📹', '🎥', '📽️', '📻', '🎙️', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '⚙️', '💣', '🔪', '🗡️', '⚔️', '🛡️', '🔮', '📿', '🔑', '🗝️', '🔒', '🔓'] },
+  { id: 'symbols', icon: '🔣', label: 'Symbols & Icons', list: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '<ctrl42>', '☯️', '☦️', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '⚛️', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🆚', '🅰️', '🅱️', '🆎', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '🚫', '💯', '💢', '♨️', '❗', '❕', '❓', '❔', '‼️', '⁉️', '⚠️', '🔱', '⚜️', '🔰', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🚻', '🧹', '💬', '💭', '🛑', '✅', '☑️', '✔️', '✖️', '❌', '➕', '➖', '➗', '♾️'] },
+  { id: 'flags', icon: '🚩', label: 'Flags', list: ['🚩', '🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇺🇸', '🇬🇧', '🇮🇳', '🇨🇦', '🇦🇺', '🇩🇪', '🇫🇷', '🇯🇵', '🇰🇷', '🇨🇳', '🇧🇷', '🇲🇽', '🇮🇹', '🇪🇸', '🇷🇺'] }
 ];
 
 function EmojiPickerModal({ isOpen, onClose, onSelectEmoji, guildEmojis = [] }) {
@@ -2769,105 +2768,6 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
             <button
               type="button"
-              onClick={() => handleTabClick('moderation')}
-              className={`sidebar-menu-item ${activeTab === 'moderation' ? 'active' : ''}`}
-            >
-              <Shield size={16} />
-              Moderation
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('antinuke')}
-              className={`sidebar-menu-item ${activeTab === 'antinuke' ? 'active' : ''}`}
-            >
-              <ShieldAlert size={16} />
-              Anti-nuke Shield
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('welcome')}
-              className={`sidebar-menu-item ${activeTab === 'welcome' ? 'active' : ''}`}
-            >
-              <Sparkles size={16} />
-              Welcome
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('verification')}
-              className={`sidebar-menu-item ${activeTab === 'verification' ? 'active' : ''}`}
-            >
-              <UserCheck size={16} />
-              Verification Role
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('tickets')}
-              className={`sidebar-menu-item ${activeTab === 'tickets' ? 'active' : ''}`}
-            >
-              <Ticket size={16} />
-              Ticket Panels
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('logs')}
-              className={`sidebar-menu-item ${activeTab === 'logs' ? 'active' : ''}`}
-            >
-              <FileText size={16} />
-              Server Logs
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('broadcast')}
-              className={`sidebar-menu-item ${activeTab === 'broadcast' ? 'active' : ''}`}
-            >
-              <Send size={16} />
-              Broadcast DMs
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('publish')}
-              className={`sidebar-menu-item ${activeTab === 'publish' ? 'active' : ''}`}
-            >
-              <Megaphone size={16} />
-              Publish Embeds
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('youtube')}
-              className={`sidebar-menu-item ${activeTab === 'youtube' ? 'active' : ''}`}
-            >
-              <Youtube size={16} />
-              YouTube Feeds
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('tempvoice')}
-              className={`sidebar-menu-item ${activeTab === 'tempvoice' ? 'active' : ''}`}
-            >
-              <Mic size={16} />
-              Temp Voice
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabClick('polls')}
-              className={`sidebar-menu-item ${activeTab === 'polls' ? 'active' : ''}`}
-            >
-              <BarChart2 size={16} />
-              Premium Polls
-            </button>
-
-            <button
-              type="button"
               onClick={() => handleTabClick('leveling')}
               className={`sidebar-menu-item ${activeTab === 'leveling' ? 'active' : ''}`}
             >
@@ -4564,7 +4464,7 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
                             {/* Top Row: Color & Thumbnail */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px', alignItems: 'flex-start' }}>
-                              
+
                               {/* Color Picker & Swatches */}
                               <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -5797,7 +5697,7 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                                         </div>
 
                                         <div className="discord-embed" style={{ borderLeftColor: settings.welcome.embedColor || settings.welcome.textColor || '#2563eb', padding: '12px 16px', borderRadius: '4px', backgroundColor: '#2b2d31' }}>
-                                          
+
                                           {/* Author Section */}
                                           {settings.welcome.embedAuthorName && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -6143,14 +6043,14 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 const currentOptions = (Array.isArray(settings.tickets?.options) && settings.tickets.options.length > 0)
                   ? settings.tickets.options
                   : [{
-                      label: settings.tickets?.buttonText || 'Create Ticket',
-                      emoji: '🎫',
-                      style: 'primary',
-                      categoryId: settings.tickets?.categoryId || '',
-                      supportRoleId: settings.tickets?.supportRoleId || '',
-                      title: settings.tickets?.title || 'Support Ticket',
-                      ticketMessage: settings.tickets?.ticketMessage || 'Welcome {user}! Please describe your issue. Support staff will assist you shortly.'
-                    }];
+                    label: settings.tickets?.buttonText || 'Create Ticket',
+                    emoji: '🎫',
+                    style: 'primary',
+                    categoryId: settings.tickets?.categoryId || '',
+                    supportRoleId: settings.tickets?.supportRoleId || '',
+                    title: settings.tickets?.title || 'Support Ticket',
+                    ticketMessage: settings.tickets?.ticketMessage || 'Welcome {user}! Please describe your issue. Support staff will assist you shortly.'
+                  }];
 
                 const updateTicketOptions = (newOptions) => {
                   const updatedTickets = {
@@ -8766,10 +8666,10 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 const currentChannels = (Array.isArray(settings.tempVoice?.channels) && settings.tempVoice.channels.length > 0)
                   ? settings.tempVoice.channels
                   : [{
-                      channelId: settings.tempVoice?.channelId || '',
-                      categoryId: settings.tempVoice?.categoryId || '',
-                      nameTemplate: settings.tempVoice?.nameTemplate || "🔊 {username}'s Room"
-                    }];
+                    channelId: settings.tempVoice?.channelId || '',
+                    categoryId: settings.tempVoice?.categoryId || '',
+                    nameTemplate: settings.tempVoice?.nameTemplate || "🔊 {username}'s Room"
+                  }];
 
                 const updateTempVoiceChannels = (newChannels) => {
                   const updatedTempVoice = {
@@ -9908,103 +9808,6 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
           )}
         </main>
       </div>
-
-      {showCropModal && uploadFile && (
-        <CropModal
-          file={uploadFile}
-          onClose={() => {
-            setShowCropModal(false);
-            setUploadFile(null);
-          }}
-          onCrop={async ({ file, cropX, cropY, cropWidth, cropHeight }) => {
-            setShowCropModal(false);
-            setUploadFile(null);
-            setSaving(true);
-            setErrorMsg(null);
-            try {
-              const res = await api.uploadBackground(guildId, file, { cropX, cropY, cropWidth, cropHeight });
-              handleInputChange('welcome.background', res.url);
-              showNotification('Background uploaded and cropped successfully!');
-            } catch (err) {
-              console.error(err);
-              setErrorMsg(err.message || 'File upload failed.');
-            } finally {
-              setSaving(false);
-            }
-          }}
-        />
-      )}
-      {showWordBulkModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '560px', padding: '24px', borderRadius: '16px', background: '#181824', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UploadCloud size={20} color="#3b82f6" /> Bulk Upload Filtered Words
-              </h3>
-              <X size={20} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setShowWordBulkModal(false)} />
-            </div>
-
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Upload a <code>.txt</code> or <code>.csv</code> file, or paste line-by-line / comma-separated words below.
-            </p>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', fontSize: '0.85rem' }}>
-                <UploadCloud size={16} /> Choose File (.txt / .csv)
-                <input
-                  type="file"
-                  accept=".txt,.csv"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (evt) => {
-                        setWordBulkText(evt.target.result || '');
-                      };
-                      reader.readAsText(file);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-
-            <textarea
-              rows="8"
-              placeholder="Paste words here (one per line or comma separated)...&#10;badword1&#10;badword2, badword3"
-              value={wordBulkText}
-              onChange={(e) => setWordBulkText(e.target.value)}
-              className="glass-input"
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', marginBottom: '16px' }}
-            />
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button type="button" className="btn-secondary" onClick={() => setShowWordBulkModal(false)}>Cancel</button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => {
-                  if (wordBulkText.trim()) {
-                    const parsed = wordBulkText
-                      .split(/[\n,]+/)
-                      .map(w => w.trim().toLowerCase())
-                      .filter(Boolean);
-
-                    const current = settings?.moderation?.wordFilter?.words || [];
-                    const combined = Array.from(new Set([...current, ...parsed]));
-                    handleInputChange('moderation.wordFilter.words', combined);
-                    showNotification(`Imported ${combined.length - current.length} new words into directory.`);
-                  }
-                  setWordBulkText('');
-                  setShowWordBulkModal(false);
-                }}
-              >
-                Import Words
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {levelEditMember && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
