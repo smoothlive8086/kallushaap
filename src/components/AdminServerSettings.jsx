@@ -204,6 +204,24 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
     }
   };
 
+  const handleAutoGenerateLevelRoles = async () => {
+    if (!window.confirm('✨ Auto-generate Discord level roles with custom distinct colors?\n\nThis will automatically create level roles (Level 1, Level 2, Level 3, Level 5, Level 10, Level 15, Level 20, Level 25, Level 50, Level 100) in your Discord server with vibrant distinct colors and link them to your XP settings.')) return;
+    setSaving(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const res = await api.autoGenerateLevelRoles(guildId);
+      setSuccessMsg(res.message || 'Auto-generated level roles successfully!');
+      fetchLevelData();
+      setTimeout(() => setSuccessMsg(null), 5000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.message || 'Failed to auto-generate level roles.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUpdateMemberXpSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!levelEditMember || !levelEditMember.userId) {
@@ -1943,6 +1961,442 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB 3: XP & MEMBER LEVELS */}
+      {activeSubTab === 'levels' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Top Info Banner & Stats Row */}
+          <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'rgba(234, 179, 8, 0.04)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Award size={24} color="#eab308" />
+                  Server XP, Levels & Automatic Role Rewards
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#cbd5e1', margin: '4px 0 0 0', lineHeight: '1.5' }}>
+                  Members gain XP by chatting in channels and staying active in voice channels. When members reach an XP level target, Discord roles are automatically generated and granted!
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAutoGenerateLevelRoles}
+                disabled={saving}
+                className="btn-primary"
+                style={{
+                  backgroundColor: '#eab308',
+                  borderColor: '#ca8a04',
+                  color: '#0f172a',
+                  fontWeight: '800',
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(234, 179, 8, 0.3)',
+                  cursor: saving ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {saving ? <Loader size={18} className="spin" /> : <Zap size={18} />}
+                <span>✨ Auto-Generate & Sync Level Roles in Discord</span>
+              </button>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginTop: '16px' }}>
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>TOTAL SERVER XP</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#eab308', marginTop: '2px' }}>
+                  {levelStats ? (levelStats.totalXp || 0).toLocaleString() : '0'} XP
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>ACTIVE XP MEMBERS</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#38bdf8', marginTop: '2px' }}>
+                  {levelStats ? levelStats.trackedMembers || 0 : 0} Members
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>VOICE TIME LOGGED</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#34d399', marginTop: '2px' }}>
+                  {levelStats ? levelStats.totalVoiceHours || 0 : 0} Hours
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>CONFIGURED LEVEL ROLES</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#a855f7', marginTop: '2px' }}>
+                  {settings?.leveling?.levelRoles ? settings.leveling.levelRoles.length : 0} Roles
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Level XP Target Table & Auto-Role Configuration */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+            
+            {/* Left Box: Level XP Targets & Auto Roles List */}
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={18} color="#eab308" />
+                  Level Progression Targets & Roles
+                </h3>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 8px' }}>Target Level</th>
+                      <th style={{ padding: '10px 8px' }}>Target XP Required</th>
+                      <th style={{ padding: '10px 8px' }}>Auto Reward Role</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { level: 1, xp: 100, color: '#3b82f6' },
+                      { level: 2, xp: 400, color: '#10b981' },
+                      { level: 3, xp: 900, color: '#06b6d4' },
+                      { level: 4, xp: 1600, color: '#8b5cf6' },
+                      { level: 5, xp: 2500, color: '#a855f7' },
+                      { level: 10, xp: 10000, color: '#e11d48' },
+                      { level: 15, xp: 22500, color: '#6366f1' },
+                      { level: 20, xp: 40000, color: '#14b8a6' },
+                      { level: 25, xp: 62500, color: '#d97706' },
+                      { level: 50, xp: 250000, color: '#f59e0b' },
+                      { level: 100, xp: 1000000, color: '#38bdf8' }
+                    ].map((target) => {
+                      const configured = settings?.leveling?.levelRoles?.find(r => Number(r.level) === target.level);
+                      const roleName = configured ? configured.roleName || `Level ${target.level}` : `Level ${target.level}`;
+                      const roleColor = configured ? configured.roleColor || target.color : target.color;
+
+                      return (
+                        <tr key={target.level} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                          <td style={{ padding: '10px 8px', fontWeight: '800', color: '#ffffff' }}>
+                            Level {target.level}
+                          </td>
+                          <td style={{ padding: '10px 8px', fontFamily: 'monospace', color: '#eab308', fontWeight: '700' }}>
+                            {target.xp.toLocaleString()} XP
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              backgroundColor: `${roleColor}20`,
+                              border: `1px solid ${roleColor}60`,
+                              color: roleColor,
+                              fontWeight: '700',
+                              fontSize: '0.78rem'
+                            }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: roleColor }} />
+                              <span>{roleName}</span>
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                            {configured ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const idx = settings?.leveling?.levelRoles?.findIndex(r => Number(r.level) === target.level);
+                                  if (idx !== -1) handleRemoveLevelRoleReward(idx);
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+                                title="Remove Role Reward"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>Auto-creates on Level up</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Right Box: Custom Level Role Reward Creator & Rates */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              {/* Add Custom Level Role */}
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', color: '#ffffff' }}>
+                  Add Custom Level Role Reward
+                </h3>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: '600' }}>
+                      Target Level
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 10"
+                      value={newLevelRewardLevel}
+                      onChange={(e) => setNewLevelRewardLevel(e.target.value)}
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: '600' }}>
+                      Assign Discord Role
+                    </label>
+                    <select
+                      value={newLevelRewardRoleId}
+                      onChange={(e) => setNewLevelRewardRoleId(e.target.value)}
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    >
+                      <option value="">-- Select Existing Role OR Auto-Create --</option>
+                      {serverRoles.map(r => (
+                        <option key={r.id} value={r.id} style={{ color: r.color }}>
+                          @{r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddLevelRoleReward}
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
+                  >
+                    <Plus size={16} /> Add Level Role Reward
+                  </button>
+                </div>
+              </div>
+
+              {/* XP Rates & Cooldown Configuration */}
+              <div className="glass-panel" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', color: '#ffffff' }}>
+                  Voice & Chat XP Rates
+                </h3>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: '600' }}>
+                      XP Per Text Message (Chat Channels)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={settings?.leveling?.xpPerMessage || 15}
+                      onChange={(e) => handleInputChange('leveling.xpPerMessage', parseInt(e.target.value) || 15)}
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: '600' }}>
+                      Text Message Cooldown (Seconds)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={settings?.leveling?.textCooldownSeconds || 60}
+                      onChange={(e) => handleInputChange('leveling.textCooldownSeconds', parseInt(e.target.value) || 60)}
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: '600' }}>
+                      XP Per Voice Minute (Voice Channels)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={settings?.leveling?.xpPerVoiceMinute || 10}
+                      onChange={(e) => handleInputChange('leveling.xpPerVoiceMinute', parseInt(e.target.value) || 10)}
+                      className="glass-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveLevelingSettings}
+                    disabled={saving}
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', marginTop: '6px' }}
+                  >
+                    <Save size={16} /> Save XP Settings
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Member Leaderboard & Full XP Controls */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={22} color="#eab308" /> Member XP Leaderboard & Level Directory
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                  Full ranking of active server members, level progress, and XP editor tools.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Search Bar */}
+                <input
+                  type="text"
+                  placeholder="Search member username..."
+                  value={levelSearchQuery}
+                  onChange={(e) => setLevelSearchQuery(e.target.value)}
+                  className="glass-input"
+                  style={{ padding: '8px 14px', fontSize: '0.85rem', width: '220px' }}
+                />
+
+                <button
+                  type="button"
+                  onClick={handleResetServerLeaderboard}
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Trash2 size={14} /> Reset Leaderboard
+                </button>
+              </div>
+            </div>
+
+            {loadingLevelData ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                <Loader size={28} className="spin" style={{ margin: '0 auto 10px auto' }} />
+                <div>Loading server member XP records...</div>
+              </div>
+            ) : levelMembers.length === 0 ? (
+              <div style={{ padding: '36px', textAlign: 'center', color: '#94a3b8', border: '1px dashed #334155', borderRadius: '12px' }}>
+                No active member XP records found yet. XP will accumulate as members chat and join voice channels!
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '12px 14px' }}>Rank</th>
+                      <th style={{ padding: '12px 14px' }}>Member</th>
+                      <th style={{ padding: '12px 14px' }}>Level</th>
+                      <th style={{ padding: '12px 14px' }}>Total XP</th>
+                      <th style={{ padding: '12px 14px' }}>Next Level Target</th>
+                      <th style={{ padding: '12px 14px' }}>Messages</th>
+                      <th style={{ padding: '12px 14px' }}>Voice Time</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {levelMembers.map((m) => (
+                      <tr key={m.userId} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                        <td style={{ padding: '12px 14px', fontWeight: '800', color: m.rank === 1 ? '#eab308' : m.rank === 2 ? '#cbd5e1' : m.rank === 3 ? '#b45309' : '#94a3b8' }}>
+                          #{m.rank}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img
+                              src={m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                              alt=""
+                              style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: '700', color: '#ffffff', fontSize: '0.9rem' }}>{m.username}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>ID: {m.userId}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                            color: '#eab308',
+                            border: '1px solid rgba(234, 179, 8, 0.3)',
+                            fontWeight: '800',
+                            fontSize: '0.8rem'
+                          }}>
+                            Level {m.level}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: '700', fontFamily: 'monospace', color: '#818cf8' }}>
+                          {(m.xp || 0).toLocaleString()} XP
+                        </td>
+                        <td style={{ padding: '12px 14px', width: '160px' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Progress</span>
+                            <span>{m.progressPercent || 0}%</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${m.progressPercent || 0}%`, height: '100%', backgroundColor: '#eab308', borderRadius: '3px' }} />
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                          {m.messagesCount || 0} msgs
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#cbd5e1' }}>
+                          {((m.voiceTimeSeconds || 0) / 60).toFixed(0)} mins
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLevelEditMember(m);
+                                setLevelEditXpAction('add');
+                                setLevelEditXpAmount('100');
+                              }}
+                              className="btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                            >
+                              Edit XP
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleResetSingleMemberXp(m.userId)}
+                              style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
+                              title="Reset XP"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 

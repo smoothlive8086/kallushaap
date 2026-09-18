@@ -157,6 +157,7 @@ export const api = {
   resetAllXp: (guildId) => request(`/guilds/${guildId}/levels/reset-all`, {
     method: 'POST'
   }),
-  getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`)
+  getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`),
+  autoGenerateLevelRoles: (guildId) => request(`/guilds/${guildId}/levels/auto-generate-roles`, { method: 'POST' })
 };
 
