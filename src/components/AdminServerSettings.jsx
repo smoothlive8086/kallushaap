@@ -17,6 +17,20 @@ const Youtube = ({ size = 24, className = '', style = {} }) => (
 );
 
 
+const DEFAULT_LEVEL_CONFIGS = [
+  { level: 1, xpRequired: 100, roleName: 'Level 1', roleColor: '#3b82f6', roleId: '' },
+  { level: 2, xpRequired: 400, roleName: 'Level 2', roleColor: '#10b981', roleId: '' },
+  { level: 3, xpRequired: 900, roleName: 'Level 3', roleColor: '#06b6d4', roleId: '' },
+  { level: 4, xpRequired: 1600, roleName: 'Level 4', roleColor: '#8b5cf6', roleId: '' },
+  { level: 5, xpRequired: 2500, roleName: 'Level 5', roleColor: '#a855f7', roleId: '' },
+  { level: 10, xpRequired: 10000, roleName: 'Level 10', roleColor: '#e11d48', roleId: '' },
+  { level: 15, xpRequired: 22500, roleName: 'Level 15', roleColor: '#6366f1', roleId: '' },
+  { level: 20, xpRequired: 40000, roleName: 'Level 20', roleColor: '#14b8a6', roleId: '' },
+  { level: 25, xpRequired: 62500, roleName: 'Level 25', roleColor: '#d97706', roleId: '' },
+  { level: 50, xpRequired: 250000, roleName: 'Level 50', roleColor: '#f59e0b', roleId: '' },
+  { level: 100, xpRequired: 1000000, roleName: 'Level 100', roleColor: '#38bdf8', roleId: '' }
+];
+
 export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange, initialTab = 'settings' }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -121,6 +135,17 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       ]);
 
       if (sData) {
+        if (!sData.leveling) sData.leveling = {};
+        if (!sData.leveling.levelRoles || sData.leveling.levelRoles.length === 0) {
+          sData.leveling.levelRoles = JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
+        } else {
+          sData.leveling.levelRoles = sData.leveling.levelRoles.map(r => ({
+            ...r,
+            xpRequired: (r.xpRequired !== undefined && r.xpRequired !== null && r.xpRequired >= 0)
+              ? r.xpRequired
+              : Math.round(Math.pow(((r.level || 1) - 1) / 0.1, 2)) || 100
+          }));
+        }
         setSettings(sData);
         setSavedSettings(JSON.parse(JSON.stringify(sData)));
       }
@@ -141,24 +166,111 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
     }
   }, [activeSubTab, guildId, levelSearchQuery]);
 
+  const handleUpdateLevelRole = (index, field, value) => {
+    setSettings(prev => {
+      const currentRoles = prev?.leveling?.levelRoles && prev.leveling.levelRoles.length > 0
+        ? JSON.parse(JSON.stringify(prev.leveling.levelRoles))
+        : JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
+
+      if (!currentRoles[index]) return prev;
+
+      if (field === 'level') {
+        currentRoles[index].level = parseInt(value) || 1;
+      } else if (field === 'xpRequired') {
+        currentRoles[index].xpRequired = Math.max(0, parseInt(value) || 0);
+      } else if (field === 'roleName') {
+        currentRoles[index].roleName = value;
+      } else if (field === 'roleColor') {
+        currentRoles[index].roleColor = value;
+      } else if (field === 'roleId') {
+        currentRoles[index].roleId = value;
+        if (value) {
+          const roleObj = serverRoles.find(r => r.id === value);
+          if (roleObj) {
+            currentRoles[index].roleName = roleObj.name;
+            if (roleObj.color && roleObj.color !== '#000000') {
+              currentRoles[index].roleColor = roleObj.color;
+            }
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          levelRoles: currentRoles
+        }
+      };
+    });
+  };
+
+  const handleAddNewLevelRow = () => {
+    setSettings(prev => {
+      const currentRoles = prev?.leveling?.levelRoles && prev.leveling.levelRoles.length > 0
+        ? JSON.parse(JSON.stringify(prev.leveling.levelRoles))
+        : JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
+
+      const maxLevel = currentRoles.length > 0 ? Math.max(...currentRoles.map(r => Number(r.level) || 0)) : 0;
+      const nextLevel = maxLevel + 1;
+      const defaultXp = Math.round(Math.pow((nextLevel - 1) / 0.1, 2)) || 100;
+
+      const newRow = {
+        level: nextLevel,
+        xpRequired: defaultXp,
+        roleName: `Level ${nextLevel}`,
+        roleColor: '#3b82f6',
+        roleId: ''
+      };
+
+      const updated = [...currentRoles, newRow].sort((a, b) => Number(a.level) - Number(b.level));
+
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          levelRoles: updated
+        }
+      };
+    });
+  };
+
+  const handleResetDefaultLevels = () => {
+    if (!window.confirm('Reset level thresholds and XP requirements back to standard defaults?')) return;
+    setSettings(prev => ({
+      ...prev,
+      leveling: {
+        ...(prev?.leveling || {}),
+        levelRoles: JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS))
+      }
+    }));
+  };
+
   const handleAddLevelRoleReward = () => {
     const levelNum = parseInt(newLevelRewardLevel);
     if (isNaN(levelNum) || levelNum <= 0) {
       alert('Please enter a valid target level number (e.g. 1, 5, 10).');
       return;
     }
-    if (!newLevelRewardRoleId) {
-      alert('Please select a Discord role to award at this level.');
-      return;
-    }
 
+    const defaultXp = Math.round(Math.pow((levelNum - 1) / 0.1, 2)) || 100;
     const roleObj = serverRoles.find(r => r.id === newLevelRewardRoleId);
-    const roleName = roleObj ? roleObj.name : 'Role';
+    const roleName = roleObj ? roleObj.name : `Level ${levelNum}`;
+    const roleColor = roleObj && roleObj.color && roleObj.color !== '#000000' ? roleObj.color : '#3b82f6';
 
     setSettings(prev => {
       const currentRoles = prev?.leveling?.levelRoles || [];
-      const updatedRoles = [...currentRoles.filter(r => r.level !== levelNum), { level: levelNum, roleId: newLevelRewardRoleId, roleName }];
-      updatedRoles.sort((a, b) => a.level - b.level);
+      const updatedRoles = [
+        ...currentRoles.filter(r => Number(r.level) !== levelNum),
+        {
+          level: levelNum,
+          xpRequired: defaultXp,
+          roleId: newLevelRewardRoleId || '',
+          roleName,
+          roleColor
+        }
+      ];
+      updatedRoles.sort((a, b) => Number(a.level) - Number(b.level));
 
       return {
         ...prev,
@@ -2042,88 +2154,147 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             
             {/* Left Box: Level XP Targets & Auto Roles List */}
             <div className="glass-panel" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Award size={18} color="#eab308" />
-                  Level Progression Targets & Roles
-                </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Award size={18} color="#eab308" />
+                    Level XP Requirements & Auto Roles
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                    Edit exact required XP, level thresholds, role names, and colors.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddNewLevelRow}
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                  >
+                    <Plus size={14} /> Add Level Row
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetDefaultLevels}
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: 0.7 }}
+                    title="Reset to standard defaults"
+                  >
+                    Reset Defaults
+                  </button>
+                </div>
               </div>
 
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 8px' }}>Target Level</th>
-                      <th style={{ padding: '10px 8px' }}>Target XP Required</th>
-                      <th style={{ padding: '10px 8px' }}>Auto Reward Role</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Action</th>
+                      <th style={{ padding: '10px 6px', width: '80px' }}>Level #</th>
+                      <th style={{ padding: '10px 6px', width: '120px' }}>Required XP</th>
+                      <th style={{ padding: '10px 6px' }}>Role Name</th>
+                      <th style={{ padding: '10px 6px', width: '50px' }}>Color</th>
+                      <th style={{ padding: '10px 6px' }}>Discord Role Link</th>
+                      <th style={{ padding: '10px 6px', textAlign: 'right', width: '45px' }}>Del</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { level: 1, xp: 100, color: '#3b82f6' },
-                      { level: 2, xp: 400, color: '#10b981' },
-                      { level: 3, xp: 900, color: '#06b6d4' },
-                      { level: 4, xp: 1600, color: '#8b5cf6' },
-                      { level: 5, xp: 2500, color: '#a855f7' },
-                      { level: 10, xp: 10000, color: '#e11d48' },
-                      { level: 15, xp: 22500, color: '#6366f1' },
-                      { level: 20, xp: 40000, color: '#14b8a6' },
-                      { level: 25, xp: 62500, color: '#d97706' },
-                      { level: 50, xp: 250000, color: '#f59e0b' },
-                      { level: 100, xp: 1000000, color: '#38bdf8' }
-                    ].map((target) => {
-                      const configured = settings?.leveling?.levelRoles?.find(r => Number(r.level) === target.level);
-                      const roleName = configured ? configured.roleName || `Level ${target.level}` : `Level ${target.level}`;
-                      const roleColor = configured ? configured.roleColor || target.color : target.color;
+                    {((settings?.leveling?.levelRoles && settings.leveling.levelRoles.length > 0)
+                      ? settings.leveling.levelRoles
+                      : DEFAULT_LEVEL_CONFIGS
+                    ).map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
+                        {/* Level Number */}
+                        <td style={{ padding: '8px 4px' }}>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.level}
+                            onChange={(e) => handleUpdateLevelRole(idx, 'level', e.target.value)}
+                            className="glass-input"
+                            style={{ width: '70px', padding: '6px 6px', fontWeight: '800', textAlign: 'center' }}
+                          />
+                        </td>
 
-                      return (
-                        <tr key={target.level} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.03)' }}>
-                          <td style={{ padding: '10px 8px', fontWeight: '800', color: '#ffffff' }}>
-                            Level {target.level}
-                          </td>
-                          <td style={{ padding: '10px 8px', fontFamily: 'monospace', color: '#eab308', fontWeight: '700' }}>
-                            {target.xp.toLocaleString()} XP
-                          </td>
-                          <td style={{ padding: '10px 8px' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              backgroundColor: `${roleColor}20`,
-                              border: `1px solid ${roleColor}60`,
-                              color: roleColor,
-                              fontWeight: '700',
-                              fontSize: '0.78rem'
-                            }}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: roleColor }} />
-                              <span>{roleName}</span>
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>
-                            {configured ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const idx = settings?.leveling?.levelRoles?.findIndex(r => Number(r.level) === target.level);
-                                  if (idx !== -1) handleRemoveLevelRoleReward(idx);
-                                }}
-                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
-                                title="Remove Role Reward"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>Auto-creates on Level up</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                        {/* Required XP */}
+                        <td style={{ padding: '8px 4px' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.xpRequired !== undefined ? item.xpRequired : 100}
+                            onChange={(e) => handleUpdateLevelRole(idx, 'xpRequired', e.target.value)}
+                            className="glass-input"
+                            style={{ width: '110px', padding: '6px 6px', fontFamily: 'monospace', color: '#eab308', fontWeight: '700' }}
+                          />
+                        </td>
+
+                        {/* Role Name */}
+                        <td style={{ padding: '8px 4px' }}>
+                          <input
+                            type="text"
+                            value={item.roleName || `Level ${item.level}`}
+                            onChange={(e) => handleUpdateLevelRole(idx, 'roleName', e.target.value)}
+                            className="glass-input"
+                            style={{ width: '100%', minWidth: '100px', padding: '6px 6px' }}
+                            placeholder={`Level ${item.level}`}
+                          />
+                        </td>
+
+                        {/* Color Picker */}
+                        <td style={{ padding: '8px 4px' }}>
+                          <input
+                            type="color"
+                            value={item.roleColor && item.roleColor.startsWith('#') ? item.roleColor : '#3b82f6'}
+                            onChange={(e) => handleUpdateLevelRole(idx, 'roleColor', e.target.value)}
+                            style={{ width: '30px', height: '30px', padding: 0, border: 'none', borderRadius: '6px', cursor: 'pointer', background: 'none' }}
+                          />
+                        </td>
+
+                        {/* Discord Role Link */}
+                        <td style={{ padding: '8px 4px' }}>
+                          <select
+                            value={item.roleId || ''}
+                            onChange={(e) => handleUpdateLevelRole(idx, 'roleId', e.target.value)}
+                            className="glass-input"
+                            style={{ width: '100%', minWidth: '120px', padding: '6px 6px', fontSize: '0.78rem' }}
+                          >
+                            <option value="">✨ Auto-create on Discord</option>
+                            {serverRoles.map(r => (
+                              <option key={r.id} value={r.id} style={{ color: r.color }}>
+                                @{r.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Remove Action */}
+                        <td style={{ padding: '8px 4px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLevelRoleReward(idx)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                            title="Remove Row"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleSaveLevelingSettings}
+                  disabled={saving}
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
+                >
+                  <Save size={16} /> Save Level XP Configuration
+                </button>
               </div>
             </div>
 
