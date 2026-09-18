@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { io } from 'socket.io-client';
+import CropModal from '../components/CropModal';
 import AdminServerSettings from '../components/AdminServerSettings';
 import {
   Shield,
@@ -35,11 +36,7 @@ import {
   Search,
   Settings,
   Image as ImageIcon,
-  Link as LinkIcon,
-  Award,
-  Zap,
-  TrendingUp,
-  RefreshCw
+  Link as LinkIcon
 } from 'lucide-react';
 
 const Youtube = ({ size = 24, className = '', style = {} }) => (
@@ -57,15 +54,15 @@ const Youtube = ({ size = 24, className = '', style = {} }) => (
 
 
 const EMOJI_CATEGORIES = [
-  { id: 'smileys', icon: '😀', label: 'Smileys & Emotion', list: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😮‍💨', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '🔥', '✨', '💥', '💯', '❤️', '💖', '🙏', '👍', '👎', '👏', '🙌', '👑'] },
-  { id: 'people', icon: '👋', label: 'People & Body', list: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '👑', '🧢', '👒', '🎓', '🎩'] },
-  { id: 'animals', icon: '🐶', label: 'Animals & Nature', list: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆'] },
-  { id: 'food', icon: '🍕', label: 'Food & Drink', list: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🍞', '🥐', '🥖', '🫓', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥗', '🍿', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🥟', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🥛', '☕', '🫖', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤'] },
-  { id: 'activities', icon: '⚽', label: 'Activities & Sports', list: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🎿', '🏂', '🏋️', '🤼', '🤸', '⛹️', '🤺', '🤾', '🧘', '🏄', '🏊', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎫', '🎟️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎵', '🎶', '🎙️', '🎸', '🎹', '🎺', '🎻', '🥁', '🎲', '♟️', '🎯', ' bowling', '🎮', '🎰', '🧩'] },
-  { id: 'travel', icon: '🚗', label: 'Travel & Places', list: ['🚗', '🚕', '🚙', '🚌', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚨', '🚘', '✈️', '🛫', '🛬', '🛸', '🚀', '🛰️', '🚁', '🛶', '⛵', '🚤', '🛳️', '⚓', '⛽', '🚧', '🚦', '🗺️', '🗿', '🗽', '<ctrl42>', '🏰', '🏯', '🏟️', '🎡', '🎢', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '🏠', '🏡', '🏙️', '🌅', '🌄', '🌇', '🌆', '🌃', '🌌'] },
-  { id: 'objects', icon: '💡', label: 'Objects & Tools', list: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🕹️', '💽', '💾', '💿', '📀', '📷', '📸', '📹', '🎥', '📽️', '📻', '🎙️', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '⚙️', '💣', '🔪', '🗡️', '⚔️', '🛡️', '🔮', '📿', '🔑', '🗝️', '🔒', '🔓'] },
-  { id: 'symbols', icon: '🔣', label: 'Symbols & Icons', list: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '<ctrl42>', '☯️', '☦️', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '⚛️', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🆚', '🅰️', '🅱️', '🆎', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '🚫', '💯', '💢', '♨️', '❗', '❕', '❓', '❔', '‼️', '⁉️', '⚠️', '🔱', '⚜️', '🔰', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🚻', '🧹', '💬', '💭', '🛑', '✅', '☑️', '✔️', '✖️', '❌', '➕', '➖', '➗', '♾️'] },
-  { id: 'flags', icon: '🚩', label: 'Flags', list: ['🚩', '🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇺🇸', '🇬🇧', '🇮🇳', '🇨🇦', '🇦🇺', '🇩🇪', '🇫🇷', '🇯🇵', '🇰🇷', '🇨🇳', '🇧🇷', '🇲🇽', '🇮🇹', '🇪🇸', '🇷🇺'] }
+  { id: 'smileys', icon: '😀', label: 'Smileys & Emotion', list: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','😮','😯','😲','😳','🥺','😦','😧','😮‍💨','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','🔥','✨','💥','💯','❤️','💖','🙏','👍','👎','👏','🙌','👑'] },
+  { id: 'people', icon: '👋', label: 'People & Body', list: ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','👑','🧢','👒','🎓','🎩'] },
+  { id: 'animals', icon: '🐶', label: 'Animals & Nature', list: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🐙','🦑','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆'] },
+  { id: 'food', icon: '🍕', label: 'Food & Drink', list: ['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥔','🥕','🌽','🌶️','🫑','🥒','🥬','🥦','🧄','🧅','🍄','🥜','🍞','🥐','🥖','🫓','🥨','🥯','🥞','🧇','🧀','🍖','🍗','🥩','🥓','🍔','🍟','🍕','🌭','🥪','🌮','🌯','🥙','🧆','🥚','🍳','🥘','🍲','🥗','🍿','🍱','🍘','🍙','🍚','🍛','🍜','🍝','🍠','🍢','🍣','🍤','🥟','🍦','🍧','🍨','🍩','🍪','🎂','🍰','🧁','🥧','🍫','🍬','🍭','🍮','🥛','☕','🫖','🍵','🍶','🍾','🍷','🍸','🍹','🍺','🍻','🥂','🥃','🥤'] },
+  { id: 'activities', icon: '⚽', label: 'Activities & Sports', list: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🎿','🏂','🏋️','🤼','🤸','⛹️','🤺','🤾','🧘','🏄','🏊','🚣','🧗','🚵','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎫','🎟️','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎵','🎶','🎙️','🎸','🎹','🎺','🎻','🥁','🎲','♟️','🎯',' bowling','🎮','🎰','🧩'] },
+  { id: 'travel', icon: '🚗', label: 'Travel & Places', list: ['🚗','🚕','🚙','🚌','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🛵','🚲','🛴','🚨','🚘','✈️','🛫','🛬','🛸','🚀','🛰️','🚁','🛶','⛵','🚤','🛳️','⚓','⛽','🚧','🚦','🗺️','🗿','🗽','<ctrl42>','🏰','🏯','🏟️','🎡','🎢','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','🏠','🏡','🏙️','🌅','🌄','🌇','🌆','🌃','🌌'] },
+  { id: 'objects', icon: '💡', label: 'Objects & Tools', list: ['⌚','📱','📲','💻','⌨️','🖥️','🖨️','🖱️','🕹️','💽','💾','💿','📀','📷','📸','📹','🎥','📽️','📻','🎙️','⏱️','⏲️','⏰','🕰️','⌛','⏳','📡','🔋','🔌','💡','🔦','🕯️','💸','💵','💴','💶','💷','🪙','💰','💳','💎','⚖️','🪜','🧰','🔧','🔨','⚒️','🛠️','⛏️','⚙️','💣','🔪','🗡️','⚔️','🛡️','🔮','📿','🔑','🗝️','🔒','🔓'] },
+  { id: 'symbols', icon: '🔣', label: 'Symbols & Icons', list: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','<ctrl42>','☯️','☦️','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','⚛️','☢️','☣️','📴','📳','🈶','🈚','🆚','🅰️','🅱️','🆎','🅾️','🆘','❌','⭕','🛑','⛔','🚫','💯','💢','♨️','❗','❕','❓','❔','‼️','⁉️','⚠️','🔱','⚜️','🔰','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🚻','🧹','💬','💭','🛑','✅','☑️','✔️','✖️','❌','➕','➖','➗','♾️'] },
+  { id: 'flags', icon: '🚩', label: 'Flags', list: ['🚩','🏳️','🏴','🏁','🚩','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇺🇸','🇬🇧','🇮🇳','🇨🇦','🇦🇺','🇩🇪','🇫🇷','🇯🇵','🇰🇷','🇨🇳','🇧🇷','🇲🇽','🇮🇹','🇪🇸','🇷🇺'] }
 ];
 
 function EmojiPickerModal({ isOpen, onClose, onSelectEmoji, guildEmojis = [] }) {
@@ -763,16 +760,6 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
   const [resolvingChannel, setResolvingChannel] = useState(false);
   const [resolveSuccessMsg, setResolveSuccessMsg] = useState('');
-
-  // Member XP & Leveling State
-  const [levelLeaderboard, setLevelLeaderboard] = useState([]);
-  const [levelStats, setLevelStats] = useState(null);
-  const [levelSearchQuery, setLevelSearchQuery] = useState('');
-  const [levelSortBy, setLevelSortBy] = useState('xp');
-  const [levelLoading, setLevelLoading] = useState(false);
-  const [levelEditMember, setLevelEditMember] = useState(null);
-  const [levelEditXpAction, setLevelEditXpAction] = useState('add');
-  const [levelEditXpAmount, setLevelEditXpAmount] = useState(100);
 
   const handleResolveYoutubeChannel = async () => {
     const channelUrlInput = settings?.youtube?.channelUrl;
@@ -1665,85 +1652,6 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
     return () => clearTimeout(delayDebounceFn);
   }, [modWhitelistSearchQuery, guildId]);
 
-  // Leveling & XP Data Fetcher
-  const fetchLevelingData = async () => {
-    setLevelLoading(true);
-    try {
-      const [lbData, statsData] = await Promise.all([
-        api.getLevelLeaderboard(guildId, { search: levelSearchQuery, sortBy: levelSortBy }),
-        api.getLevelStats(guildId).catch(() => null)
-      ]);
-      if (lbData && lbData.members) {
-        setLevelLeaderboard(lbData.members);
-      }
-      if (statsData) {
-        setLevelStats(statsData);
-      }
-    } catch (err) {
-      console.error('[Dashboard Leveling Error] Failed to fetch leveling data:', err.message);
-    } finally {
-      setLevelLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'leveling') {
-      fetchLevelingData();
-    }
-  }, [activeTab, guildId, levelSortBy, levelSearchQuery]);
-
-  const handleUpdateMemberXpSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!levelEditMember || !levelEditMember.userId) {
-      setErrorMsg('Please select a valid member or enter a User ID.');
-      return;
-    }
-
-    try {
-      let finalAction = levelEditXpAction;
-      let finalAmount = parseInt(levelEditXpAmount) || 0;
-
-      if (levelEditXpAction === 'setLevel') {
-        const targetLevel = Math.max(0, parseInt(levelEditXpAmount) || 0);
-        finalAction = 'set';
-        // Formula: XP = (Level / 0.1)^2
-        finalAmount = Math.pow(targetLevel / 0.1, 2);
-      }
-
-      const res = await api.updateUserXp(guildId, levelEditMember.userId.trim(), {
-        action: finalAction,
-        amount: finalAmount
-      });
-      showNotification(res.message || 'Updated member XP & Level successfully!');
-      setLevelEditMember(null);
-      fetchLevelingData();
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to update member XP.');
-    }
-  };
-
-  const handleResetSingleUserXp = async (userId, username) => {
-    if (!window.confirm(`Are you sure you want to reset XP and level data for ${username}? This action cannot be undone.`)) return;
-    try {
-      const res = await api.resetUserXp(guildId, userId);
-      showNotification(res.message || 'User XP reset successfully.');
-      fetchLevelingData();
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to reset user XP.');
-    }
-  };
-
-  const handleResetAllGuildXp = async () => {
-    if (!window.confirm(`⚠️ WARNING: Are you sure you want to RESET ALL MEMBER XP and Level Leaderboard for this server? All XP history will be permanently deleted.`)) return;
-    try {
-      const res = await api.resetAllXp(guildId);
-      showNotification(res.message || 'Server XP leaderboard reset successfully.');
-      fetchLevelingData();
-    } catch (err) {
-      setErrorMsg(err.message || 'Failed to reset server leaderboard.');
-    }
-  };
-
   // Initialize Socket.IO connection and join room
   useEffect(() => {
     const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -2145,17 +2053,21 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
     if (!rawText) return '';
 
     const redirectCh = channels.find(c => c.id === settings?.welcome?.redirectChannelId);
-    const channelName = redirectCh ? redirectCh.name : 'channel';
+    const channelName = redirectCh ? redirectCh.name : 'rules';
     const redirectCh2 = channels.find(c => c.id === settings?.welcome?.redirectChannelId2);
-    const channelName2 = redirectCh2 ? redirectCh2.name : 'channel';
+    const channelName2 = redirectCh2 ? redirectCh2.name : 'announcements';
     const redirectCh3 = channels.find(c => c.id === settings?.welcome?.redirectChannelId3);
-    const channelName3 = redirectCh3 ? redirectCh3.name : 'channel';
+    const channelName3 = redirectCh3 ? redirectCh3.name : 'chat';
+    const bullet = settings?.welcome?.bulletEmoji || '➤';
+    const websiteUrl = settings?.welcome?.websiteUrl || '';
+    const websiteText = settings?.welcome?.websiteText || 'Website';
 
     let text = rawText
       .replace(/{username}/g, user?.username || 'Member')
-      .replace(/{server}/g, guildName || 'Server');
+      .replace(/{server}/g, guildName || 'Server')
+      .replace(/{bullet}/g, bullet);
 
-    const parts = text.split(/({user}|{channel}|{channel2}|{channel3})/g);
+    const parts = text.split(/({user}|{channel}|{rules}|{channel2}|{announcements}|{channel3}|{chat}|{website})/g);
 
     return parts.map((part, index) => {
       if (part === '{user}') {
@@ -2165,25 +2077,46 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
           </span>
         );
       }
-      if (part === '{channel}') {
+      if (part === '{channel}' || part === '{rules}') {
         return (
           <span key={`mention-ch-${index}`} className="discord-mention-channel">
             #{channelName}
           </span>
         );
       }
-      if (part === '{channel2}') {
+      if (part === '{channel2}' || part === '{announcements}') {
         return (
           <span key={`mention-ch2-${index}`} className="discord-mention-channel">
             #{channelName2}
           </span>
         );
       }
-      if (part === '{channel3}') {
+      if (part === '{channel3}' || part === '{chat}') {
         return (
           <span key={`mention-ch3-${index}`} className="discord-mention-channel">
             #{channelName3}
           </span>
+        );
+      }
+      if (part === '{website}') {
+        if (!websiteUrl) {
+          return (
+            <span key={`web-${index}`} style={{ color: '#38bdf8', fontWeight: '500' }}>
+              [{websiteText}]
+            </span>
+          );
+        }
+        return (
+          <a
+            key={`web-${index}`}
+            href={websiteUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: '500' }}
+            onClick={e => e.preventDefault()}
+          >
+            {websiteText} 🔗
+          </a>
         );
       }
 
@@ -2208,10 +2141,12 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
       settings?.welcome?.redirectChannelId3
     ].filter(Boolean);
 
-    if (redirectIds.length === 0) return null;
+    const hasWebsite = Boolean(settings?.welcome?.websiteUrl);
+
+    if (redirectIds.length === 0 && !hasWebsite) return null;
 
     return (
-      <div className="discord-buttons-row">
+      <div className="discord-buttons-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
         {redirectIds.map((id, index) => {
           const redirectCh = channels.find(c => c.id === id);
           const channelName = redirectCh ? redirectCh.name : 'channel';
@@ -2226,6 +2161,16 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
             </span>
           );
         })}
+        {hasWebsite && (
+          <span className="discord-button-link" style={{ backgroundColor: '#4e5058' }}>
+            <span>{settings?.welcome?.websiteText || 'Website'}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </span>
+        )}
       </div>
     );
   };
@@ -2468,6 +2413,33 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
       }
     }));
     showNotification('Layout reset to default positions, sizes & visibility!');
+  };
+
+  const handleApplyFieryPreset = () => {
+    setSettings(prev => ({
+      ...prev,
+      welcome: {
+        ...prev.welcome,
+        enabled: true,
+        layoutType: 'embed-only',
+        embedColor: '#ff0033',
+        embedAuthorName: 'Welcome To The Server !',
+        embedAuthorIcon: prev.welcome.embedAuthorIcon || '',
+        embedAuthorUrl: '',
+        embedTitle: '',
+        embedThumbnail: prev.welcome.embedThumbnail || '{user_avatar}',
+        bulletEmoji: '➤',
+        message: '➤ Welcome {user} To **{server}**\n\n➤ Stay Updated {channel2}\n\n➤ Read {channel} And Follow\n\n➤ Go And Enjoy {channel3}',
+        embedImage: prev.welcome.embedImage || 'https://i.gifer.com/7VE.gif',
+        gifSupport: true,
+        gifRatio: '16:9',
+        gifHeight: 250,
+        gifFitMode: 'cover',
+        websiteText: 'Visit Website',
+        websiteUrl: prev.welcome.websiteUrl || ''
+      }
+    }));
+    showNotification('Fiery Server Welcome Preset applied!');
   };
 
   const getSanitizedSettings = (rawSettings) => {
@@ -2768,11 +2740,101 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
             <button
               type="button"
-              onClick={() => handleTabClick('leveling')}
-              className={`sidebar-menu-item ${activeTab === 'leveling' ? 'active' : ''}`}
+              onClick={() => handleTabClick('moderation')}
+              className={`sidebar-menu-item ${activeTab === 'moderation' ? 'active' : ''}`}
             >
-              <Award size={16} />
-              XP & Member Levels
+              <Shield size={16} />
+              Moderation
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('antinuke')}
+              className={`sidebar-menu-item ${activeTab === 'antinuke' ? 'active' : ''}`}
+            >
+              <ShieldAlert size={16} />
+              Anti-nuke Shield
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('welcome')}
+              className={`sidebar-menu-item ${activeTab === 'welcome' ? 'active' : ''}`}
+            >
+              <Sparkles size={16} />
+              Welcome
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('verification')}
+              className={`sidebar-menu-item ${activeTab === 'verification' ? 'active' : ''}`}
+            >
+              <UserCheck size={16} />
+              Verification Role
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('tickets')}
+              className={`sidebar-menu-item ${activeTab === 'tickets' ? 'active' : ''}`}
+            >
+              <Ticket size={16} />
+              Ticket Panels
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('logs')}
+              className={`sidebar-menu-item ${activeTab === 'logs' ? 'active' : ''}`}
+            >
+              <FileText size={16} />
+              Server Logs
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('broadcast')}
+              className={`sidebar-menu-item ${activeTab === 'broadcast' ? 'active' : ''}`}
+            >
+              <Send size={16} />
+              Broadcast DMs
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('publish')}
+              className={`sidebar-menu-item ${activeTab === 'publish' ? 'active' : ''}`}
+            >
+              <Megaphone size={16} />
+              Publish Embeds
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('youtube')}
+              className={`sidebar-menu-item ${activeTab === 'youtube' ? 'active' : ''}`}
+            >
+              <Youtube size={16} />
+              YouTube Feeds
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('tempvoice')}
+              className={`sidebar-menu-item ${activeTab === 'tempvoice' ? 'active' : ''}`}
+            >
+              <Mic size={16} />
+              Temp Voice
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('polls')}
+              className={`sidebar-menu-item ${activeTab === 'polls' ? 'active' : ''}`}
+            >
+              <BarChart2 size={16} />
+              Premium Polls
             </button>
 
             {user && user.isAdmin && (
@@ -4452,23 +4514,46 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                             flexDirection: 'column',
                             gap: '16px'
                           }}>
-                            <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
-                              <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Sparkles size={18} style={{ color: 'var(--primary)' }} />
-                                Welcome Embed Customizer
-                              </h4>
-                              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                                Customize color, thumbnail, author, title, description markdown, fields, main image banner, and footer icon.
-                              </p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                              <div>
+                                <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <Sparkles size={18} style={{ color: 'var(--primary)' }} />
+                                  Welcome Embed Customizer & Preset
+                                </h4>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                                  Customize GIF size, ratio, channel mentions, website link, bullet arrows, color, and banner images.
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={handleApplyFieryPreset}
+                                className="btn-primary"
+                                style={{
+                                  padding: '6px 14px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  borderRadius: '8px',
+                                  background: 'linear-gradient(135deg, #ff0033 0%, #e67e22 100%)',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  boxShadow: '0 4px 12px rgba(255, 0, 51, 0.3)'
+                                }}
+                              >
+                                <Sparkles size={14} /> Apply Fiery Preset (Like Image)
+                              </button>
                             </div>
 
                             {/* Top Row: Color & Thumbnail */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '16px', alignItems: 'flex-start' }}>
-
+                              
                               {/* Color Picker & Swatches */}
                               <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                                  Color
+                                  Embed Color Strip
                                 </label>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#0f1013', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '4px 8px' }}>
@@ -4489,8 +4574,8 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
                                     {[
-                                      '#000000', '#2ecc71', '#3498db', '#9b59b6', '#e91e63',
-                                      '#f1c40f', '#e67e22', '#e74c3c', '#95a5a6', '#34495e', '#ffffff'
+                                      '#ff0033', '#000000', '#2ecc71', '#3498db', '#9b59b6', '#e91e63',
+                                      '#f1c40f', '#e67e22', '#e74c3c', '#95a5a6', '#ffffff'
                                     ].map(colorHex => (
                                       <button
                                         key={colorHex}
@@ -4614,7 +4699,7 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                             {/* Author Section */}
                             <div>
                               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Author
+                                Author Header Text
                               </label>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <label className="btn-secondary" style={{ padding: '8px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '38px', borderRadius: '6px' }} title="Upload Author Icon">
@@ -4634,244 +4719,259 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                                   />
                                 </label>
 
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  onClick={() => {
-                                    const url = prompt('Enter Author Link URL:', settings.welcome.embedAuthorUrl || '');
-                                    if (url !== null) handleInputChange('welcome.embedAuthorUrl', url);
-                                  }}
-                                  style={{ padding: '8px 10px', height: '38px', borderRadius: '6px', background: settings.welcome.embedAuthorUrl ? 'var(--primary-glow)' : undefined }}
-                                  title="Set Author Link URL"
-                                >
-                                  <LinkIcon size={16} />
-                                </button>
-
                                 <input
                                   type="text"
                                   value={settings.welcome.embedAuthorName || ''}
                                   onChange={(e) => handleInputChange('welcome.embedAuthorName', e.target.value)}
                                   className="glass-input"
-                                  placeholder="HERE IS OUR WEBSITE"
+                                  placeholder="Welcome To The Server !"
                                   style={{ flex: 1 }}
                                 />
                               </div>
-                              {(settings.welcome.embedAuthorIcon || settings.welcome.embedAuthorUrl) && (
-                                <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                  {settings.welcome.embedAuthorIcon && <span>Icon: {settings.welcome.embedAuthorIcon}</span>}
-                                  {settings.welcome.embedAuthorUrl && <span>URL: {settings.welcome.embedAuthorUrl}</span>}
-                                </div>
-                              )}
                             </div>
 
-                            {/* Title Section */}
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Title
-                              </label>
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  onClick={() => {
-                                    const url = prompt('Enter Title Link URL:', settings.welcome.embedTitleUrl || '');
-                                    if (url !== null) handleInputChange('welcome.embedTitleUrl', url);
-                                  }}
-                                  style={{ padding: '8px 10px', height: '38px', borderRadius: '6px', background: settings.welcome.embedTitleUrl ? 'var(--primary-glow)' : undefined }}
-                                  title="Set Title Link URL"
-                                >
-                                  <LinkIcon size={16} />
-                                </button>
-
-                                <input
-                                  type="text"
-                                  value={settings.welcome.embedTitle || ''}
-                                  onChange={(e) => handleInputChange('welcome.embedTitle', e.target.value)}
-                                  className="glass-input"
-                                  placeholder="Website"
-                                  style={{ flex: 1 }}
-                                />
+                            {/* Channel Mentions, Website URL & Bullet Selector Integration */}
+                            <div style={{
+                              padding: '12px',
+                              borderRadius: '10px',
+                              backgroundColor: 'rgba(0,0,0,0.2)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px'
+                            }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                                Channel Mentions & Website Link Integration
                               </div>
-                              {settings.welcome.embedTitleUrl && (
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                                  Link URL: {settings.welcome.embedTitleUrl}
-                                </span>
-                              )}
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Rules Channel ({`{rules}`})
+                                  </label>
+                                  <select
+                                    value={settings.welcome.redirectChannelId || ''}
+                                    onChange={(e) => handleInputChange('welcome.redirectChannelId', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem', width: '100%' }}
+                                  >
+                                    <option value="">None Selected</option>
+                                    {channels.map(ch => (
+                                      <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Announcements Channel ({`{announcements}`})
+                                  </label>
+                                  <select
+                                    value={settings.welcome.redirectChannelId2 || ''}
+                                    onChange={(e) => handleInputChange('welcome.redirectChannelId2', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem', width: '100%' }}
+                                  >
+                                    <option value="">None Selected</option>
+                                    {channels.map(ch => (
+                                      <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    General Chat Channel ({`{chat}`})
+                                  </label>
+                                  <select
+                                    value={settings.welcome.redirectChannelId3 || ''}
+                                    onChange={(e) => handleInputChange('welcome.redirectChannelId3', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem', width: '100%' }}
+                                  >
+                                    <option value="">None Selected</option>
+                                    {channels.map(ch => (
+                                      <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: '10px', alignItems: 'center' }}>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Website URL ({`{website}`})
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={settings.welcome.websiteUrl || ''}
+                                    onChange={(e) => handleInputChange('welcome.websiteUrl', e.target.value)}
+                                    className="glass-input"
+                                    placeholder="https://yourwebsite.com"
+                                    style={{ fontSize: '0.8rem' }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Website Button Label
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={settings.welcome.websiteText || ''}
+                                    onChange={(e) => handleInputChange('welcome.websiteText', e.target.value)}
+                                    className="glass-input"
+                                    placeholder="Visit Website"
+                                    style={{ fontSize: '0.8rem' }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Bullet Emoji ({`{bullet}`})
+                                  </label>
+                                  <select
+                                    value={settings.welcome.bulletEmoji || '➤'}
+                                    onChange={(e) => handleInputChange('welcome.bulletEmoji', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    <option value="➤">➤ Arrow</option>
+                                    <option value="⚡">⚡ Lightning</option>
+                                    <option value="✦">✦ Star</option>
+                                    <option value="🔥">🔥 Fire</option>
+                                    <option value="📌">📌 Pin</option>
+                                    <option value="•">• Dot</option>
+                                  </select>
+                                </div>
+                              </div>
                             </div>
 
                             {/* Description Section */}
                             <div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                 <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                                  Description
+                                  Message / Description Text
                                 </label>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {(settings.welcome.message || '').length} / 4096
+                                  Available tags: {`{user}, {server}, {rules}, {announcements}, {chat}, {website}, {bullet}`}
                                 </span>
                               </div>
                               <textarea
                                 value={settings.welcome.message || ''}
                                 onChange={(e) => handleInputChange('welcome.message', e.target.value)}
                                 className="glass-input"
-                                rows="3"
-                                placeholder="**BUY ALL THINGS FROM HERE <#153338781401100410>**"
-                                style={{ width: '100%', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' }}
+                                rows="4"
+                                placeholder="➤ Welcome {user} To **{server}**&#10;&#10;➤ Stay Updated {announcements}&#10;&#10;➤ Read {rules} And Follow&#10;&#10;➤ Go And Enjoy {chat}"
+                                style={{ width: '100%', minHeight: '95px', resize: 'vertical', fontFamily: 'inherit' }}
                               />
                             </div>
 
-                            {/* Fields Section */}
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                                  Fields
+                            {/* GIF Banner Image & Sizing Controls Section */}
+                            <div style={{
+                              padding: '12px',
+                              borderRadius: '10px',
+                              backgroundColor: 'rgba(0,0,0,0.25)',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                                  GIF Banner Image & Sizing Controls
                                 </label>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const currentFields = settings.welcome.embedFields || [];
-                                    handleInputChange('welcome.embedFields', [...currentFields, { name: '', value: '', inline: false }]);
-                                  }}
-                                  className="btn-secondary"
-                                  style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                  <Plus size={14} /> Add Field
-                                </button>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={settings.welcome.gifSupport || false}
+                                    onChange={() => handleToggle('welcome.gifSupport')}
+                                  />
+                                  Enable GIF Mode
+                                </label>
                               </div>
 
-                              {Array.isArray(settings.welcome.embedFields) && settings.welcome.embedFields.length > 0 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                  {settings.welcome.embedFields.map((field, idx) => (
-                                    <div key={idx} style={{ padding: '10px', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <input
-                                          type="text"
-                                          value={field.name || ''}
-                                          onChange={(e) => {
-                                            const newFields = [...(settings.welcome.embedFields || [])];
-                                            newFields[idx].name = e.target.value;
-                                            handleInputChange('welcome.embedFields', newFields);
-                                          }}
-                                          className="glass-input"
-                                          placeholder="Field Name"
-                                          style={{ flex: 1, fontSize: '0.85rem' }}
-                                        />
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
-                                          <input
-                                            type="checkbox"
-                                            checked={Boolean(field.inline)}
-                                            onChange={(e) => {
-                                              const newFields = [...(settings.welcome.embedFields || [])];
-                                              newFields[idx].inline = e.target.checked;
-                                              handleInputChange('welcome.embedFields', newFields);
-                                            }}
-                                          />
-                                          Inline
-                                        </label>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const newFields = settings.welcome.embedFields.filter((_, i) => i !== idx);
-                                            handleInputChange('welcome.embedFields', newFields);
-                                          }}
-                                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </div>
-                                      <textarea
-                                        value={field.value || ''}
-                                        onChange={(e) => {
-                                          const newFields = [...(settings.welcome.embedFields || [])];
-                                          newFields[idx].value = e.target.value;
-                                          handleInputChange('welcome.embedFields', newFields);
-                                        }}
-                                        className="glass-input"
-                                        rows="2"
-                                        placeholder="Field Value"
-                                        style={{ width: '100%', fontSize: '0.85rem', resize: 'vertical' }}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Image Section (Main Banner Image) */}
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Image
-                              </label>
-                              <div style={{
-                                position: 'relative',
-                                width: '100%',
-                                minHeight: '90px',
-                                borderRadius: '8px',
-                                backgroundColor: '#111216',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '10px',
-                                overflow: 'hidden'
-                              }}>
-                                {settings.welcome.embedImage ? (
-                                  <div style={{ position: 'relative', width: '100%', textAlign: 'center' }}>
-                                    <img src={resolveUploadUrl(settings.welcome.embedImage)} alt="Embed Main Image" style={{ maxHeight: '160px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px' }} />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleInputChange('welcome.embedImage', '')}
-                                      style={{
-                                        position: 'absolute',
-                                        top: '4px',
-                                        right: '4px',
-                                        width: '22px',
-                                        height: '22px',
-                                        borderRadius: '50%',
-                                        backgroundColor: 'rgba(0,0,0,0.85)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                      title="Remove Main Image"
-                                    >
-                                      <X size={14} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '12px 0' }}>
-                                    <ImageIcon size={28} style={{ color: 'var(--text-muted)' }} />
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                      <label className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                                        Upload Image
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          style={{ display: 'none' }}
-                                          onChange={async (e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                              const res = await api.uploadBackground(guildId, file).catch(() => null);
-                                              if (res && res.url) handleInputChange('welcome.embedImage', res.url);
-                                            }
-                                            e.target.value = null;
-                                          }}
-                                        />
-                                      </label>
-                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>or paste URL below</span>
-                                    </div>
+                              {/* GIF / Image URL */}
+                              <div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <input
+                                    type="text"
+                                    value={settings.welcome.embedImage || ''}
+                                    onChange={(e) => handleInputChange('welcome.embedImage', e.target.value)}
+                                    className="glass-input"
+                                    placeholder="https://example.com/welcome_banner.gif"
+                                    style={{ flex: 1, fontSize: '0.85rem' }}
+                                  />
+                                  <label className="btn-secondary" style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                                    Upload GIF
                                     <input
-                                      type="text"
-                                      value={settings.welcome.embedImage || ''}
-                                      onChange={(e) => handleInputChange('welcome.embedImage', e.target.value)}
-                                      className="glass-input"
-                                      placeholder="https://example.com/banner.png"
-                                      style={{ width: '280px', fontSize: '0.8rem', textAlign: 'center' }}
+                                      type="file"
+                                      accept="image/*"
+                                      style={{ display: 'none' }}
+                                      onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                          const res = await api.uploadBackground(guildId, file).catch(() => null);
+                                          if (res && res.url) handleInputChange('welcome.embedImage', res.url);
+                                        }
+                                        e.target.value = null;
+                                      }}
                                     />
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* GIF Ratio, Height & Fit Mode Sliders */}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'center' }}>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Aspect Ratio
+                                  </label>
+                                  <select
+                                    value={settings.welcome.gifRatio || '16:9'}
+                                    onChange={(e) => handleInputChange('welcome.gifRatio', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    <option value="16:9">16:9 (Standard Widescreen)</option>
+                                    <option value="21:9">21:9 (Ultrawide Banner)</option>
+                                    <option value="4:3">4:3 (Classic Box)</option>
+                                    <option value="1:1">1:1 (Square Box)</option>
+                                    <option value="auto">Auto (Native Height)</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    <span>Max Height</span>
+                                    <span>{settings.welcome.gifHeight || 250}px</span>
                                   </div>
-                                )}
+                                  <input
+                                    type="range"
+                                    min="100"
+                                    max="400"
+                                    step="10"
+                                    value={settings.welcome.gifHeight || 250}
+                                    onChange={(e) => handleInputChange('welcome.gifHeight', parseInt(e.target.value))}
+                                    style={{ width: '100%', accentColor: 'var(--primary)' }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                    Fit Mode
+                                  </label>
+                                  <select
+                                    value={settings.welcome.gifFitMode || 'cover'}
+                                    onChange={(e) => handleInputChange('welcome.gifFitMode', e.target.value)}
+                                    className="glass-input"
+                                    style={{ fontSize: '0.8rem' }}
+                                  >
+                                    <option value="cover">Cover (Fill Container)</option>
+                                    <option value="contain">Contain (Fit Whole GIF)</option>
+                                    <option value="fill">Stretch Fill</option>
+                                  </select>
+                                </div>
                               </div>
                             </div>
 
@@ -5697,7 +5797,7 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                                         </div>
 
                                         <div className="discord-embed" style={{ borderLeftColor: settings.welcome.embedColor || settings.welcome.textColor || '#2563eb', padding: '12px 16px', borderRadius: '4px', backgroundColor: '#2b2d31' }}>
-
+                                          
                                           {/* Author Section */}
                                           {settings.welcome.embedAuthorName && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -5719,19 +5819,21 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                                           {/* Title & Thumbnail Row */}
                                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
                                             <div style={{ flex: 1 }}>
-                                              <div style={{ fontWeight: '700', color: '#38bdf8', fontSize: '1rem', marginBottom: '6px' }}>
-                                                {settings.welcome.embedTitleUrl ? (
-                                                  <a href={settings.welcome.embedTitleUrl} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }} onClick={e => e.preventDefault()}>
-                                                    {formatWelcomeText(settings.welcome.embedTitle || `Welcome to ${guildName || 'Server'}!`)}
-                                                  </a>
-                                                ) : (
-                                                  formatWelcomeText(settings.welcome.embedTitle || `Welcome to ${guildName || 'Server'}!`)
-                                                )}
-                                              </div>
+                                              {settings.welcome.embedTitle && (
+                                                <div style={{ fontWeight: '700', color: '#38bdf8', fontSize: '1rem', marginBottom: '6px' }}>
+                                                  {settings.welcome.embedTitleUrl ? (
+                                                    <a href={settings.welcome.embedTitleUrl} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }} onClick={e => e.preventDefault()}>
+                                                      {formatWelcomeText(settings.welcome.embedTitle)}
+                                                    </a>
+                                                  ) : (
+                                                    formatWelcomeText(settings.welcome.embedTitle)
+                                                  )}
+                                                </div>
+                                              )}
 
                                               {/* Description */}
                                               {settings.welcome.message && (
-                                                <div style={{ fontSize: '0.875rem', color: '#dbdee1', whiteSpace: 'pre-wrap', marginBottom: '8px', wordBreak: 'break-word' }}>
+                                                <div style={{ fontSize: '0.875rem', color: '#dbdee1', whiteSpace: 'pre-wrap', marginBottom: '8px', wordBreak: 'break-word', lineHeight: '1.5' }}>
                                                   {formatWelcomeText(settings.welcome.message)}
                                                 </div>
                                               )}
@@ -5759,15 +5861,42 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                                             </div>
                                           )}
 
-                                          {/* Main Image Banner */}
+                                          {/* Main Image Banner with Ratio, Max Height, and Fit Mode */}
                                           {settings.welcome.layoutType === 'embed-card' ? (
                                             <div style={{ marginTop: '10px', borderRadius: '4px', overflow: 'hidden' }}>
                                               {renderCanvasCard()}
                                             </div>
                                           ) : (
                                             (mainImageUrl || (settings.welcome.gifSupport && settings.welcome.background)) && (
-                                              <div style={{ marginTop: '10px', borderRadius: '4px', overflow: 'hidden' }}>
-                                                <img src={mainImageUrl || resolveUploadUrl(settings.welcome.background)} alt="embed main banner" style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '4px', objectFit: 'cover' }} />
+                                              <div style={{
+                                                marginTop: '10px',
+                                                borderRadius: '4px',
+                                                overflow: 'hidden',
+                                                width: '100%',
+                                                aspectRatio: (() => {
+                                                  const r = settings.welcome.gifRatio;
+                                                  if (r === '16:9') return '16/9';
+                                                  if (r === '21:9') return '21/9';
+                                                  if (r === '4:3') return '4/3';
+                                                  if (r === '1:1') return '1/1';
+                                                  return 'auto';
+                                                })(),
+                                                maxHeight: `${settings.welcome.gifHeight || 250}px`,
+                                                backgroundColor: '#0f1013',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                              }}>
+                                                <img
+                                                  src={mainImageUrl || resolveUploadUrl(settings.welcome.background)}
+                                                  alt="embed main banner"
+                                                  style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    borderRadius: '4px',
+                                                    objectFit: settings.welcome.gifFitMode || 'cover'
+                                                  }}
+                                                />
                                               </div>
                                             )
                                           )}
@@ -6043,14 +6172,14 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 const currentOptions = (Array.isArray(settings.tickets?.options) && settings.tickets.options.length > 0)
                   ? settings.tickets.options
                   : [{
-                    label: settings.tickets?.buttonText || 'Create Ticket',
-                    emoji: '🎫',
-                    style: 'primary',
-                    categoryId: settings.tickets?.categoryId || '',
-                    supportRoleId: settings.tickets?.supportRoleId || '',
-                    title: settings.tickets?.title || 'Support Ticket',
-                    ticketMessage: settings.tickets?.ticketMessage || 'Welcome {user}! Please describe your issue. Support staff will assist you shortly.'
-                  }];
+                      label: settings.tickets?.buttonText || 'Create Ticket',
+                      emoji: '🎫',
+                      style: 'primary',
+                      categoryId: settings.tickets?.categoryId || '',
+                      supportRoleId: settings.tickets?.supportRoleId || '',
+                      title: settings.tickets?.title || 'Support Ticket',
+                      ticketMessage: settings.tickets?.ticketMessage || 'Welcome {user}! Please describe your issue. Support staff will assist you shortly.'
+                    }];
 
                 const updateTicketOptions = (newOptions) => {
                   const updatedTickets = {
@@ -8666,10 +8795,10 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 const currentChannels = (Array.isArray(settings.tempVoice?.channels) && settings.tempVoice.channels.length > 0)
                   ? settings.tempVoice.channels
                   : [{
-                    channelId: settings.tempVoice?.channelId || '',
-                    categoryId: settings.tempVoice?.categoryId || '',
-                    nameTemplate: settings.tempVoice?.nameTemplate || "🔊 {username}'s Room"
-                  }];
+                      channelId: settings.tempVoice?.channelId || '',
+                      categoryId: settings.tempVoice?.categoryId || '',
+                      nameTemplate: settings.tempVoice?.nameTemplate || "🔊 {username}'s Room"
+                    }];
 
                 const updateTempVoiceChannels = (newChannels) => {
                   const updatedTempVoice = {
@@ -9405,381 +9534,6 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 </div>
               )}
 
-              {/* TAB: XP & MEMBER LEVELS */}
-              {activeTab === 'leveling' && (
-                <div>
-                  <div className="section-header" style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.1))',
-                        border: '1px solid rgba(234, 179, 8, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#eab308'
-                      }}>
-                        <Award size={22} />
-                      </div>
-                      <div>
-                        <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', margin: 0 }}>
-                          Member XP & Leveling Management
-                        </h2>
-                        <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
-                          Configure text & voice channel XP rates, manage server leaderboards, and adjust member XP/levels.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Server Analytics Overview Cards */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-                    gap: '16px',
-                    marginBottom: '24px'
-                  }}>
-                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Total Server XP</span>
-                        <Zap size={18} color="#eab308" />
-                      </div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
-                        {(levelStats?.totalXp || 0).toLocaleString()} XP
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Across all active members</div>
-                    </div>
-
-                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Voice Active Time</span>
-                        <Mic size={18} color="#3b82f6" />
-                      </div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
-                        {levelStats?.totalVoiceHours || '0.0'} hrs
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Total voice channel activity</div>
-                    </div>
-
-                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Messages Logged</span>
-                        <MessageSquare size={18} color="#10b981" />
-                      </div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
-                        {(levelStats?.totalMessages || 0).toLocaleString()}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Text messages sent</div>
-                    </div>
-
-                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Top Server Member</span>
-                        <Award size={18} color="#f59e0b" />
-                      </div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fbbf24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {levelStats?.topMember ? levelStats.topMember.username : 'None yet'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-                        {levelStats?.topMember ? `Level ${levelStats.topMember.level} • ${levelStats.topMember.xp.toLocaleString()} XP` : 'Chat to gain XP!'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Leveling System Configuration Card */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                      <div>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff', margin: 0 }}>Leveling Rates & Rules</h3>
-                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
-                          Set XP awarded per text message and per active minute in voice channels.
-                        </p>
-                      </div>
-                      <label className="switch-toggle">
-                        <input
-                          type="checkbox"
-                          checked={settings?.leveling?.enabled !== false}
-                          onChange={(e) => handleInputChange('leveling.enabled', e.target.checked)}
-                        />
-                        <span className="slider round"></span>
-                      </label>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
-                          Text Message XP (per message)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={settings?.leveling?.xpPerMessage ?? 15}
-                          onChange={(e) => handleInputChange('leveling.xpPerMessage', parseInt(e.target.value) || 0)}
-                          className="glass-input"
-                          style={{ width: '100%' }}
-                        />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                          XP granted per valid text message sent
-                        </span>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
-                          Text Cooldown (seconds)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="600"
-                          value={settings?.leveling?.textCooldownSeconds ?? 60}
-                          onChange={(e) => handleInputChange('leveling.textCooldownSeconds', parseInt(e.target.value) || 0)}
-                          className="glass-input"
-                          style={{ width: '100%' }}
-                        />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                          Cooldown between text messages to avoid spam
-                        </span>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
-                          Voice XP (per active minute)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={settings?.leveling?.xpPerVoiceMinute ?? 10}
-                          onChange={(e) => handleInputChange('leveling.xpPerVoiceMinute', parseInt(e.target.value) || 0)}
-                          className="glass-input"
-                          style={{ width: '100%' }}
-                        />
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                          XP awarded every minute active in voice channels
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Leaderboard Table & Admin Controls */}
-                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                      <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#fff', margin: 0 }}>
-                          Member XP Leaderboard & Adjuster
-                        </h3>
-                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                          Manage member levels, adjust XP, set level directly, or reset server history.
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Custom Adjust XP Button for any Member */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLevelEditMember({ userId: '', username: '', level: 0, xp: 0 });
-                            setLevelEditXpAction('add');
-                            setLevelEditXpAmount(100);
-                          }}
-                          className="btn-primary"
-                          style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <Plus size={15} />
-                          Adjust Member XP
-                        </button>
-
-                        <div style={{ position: 'relative', width: '180px' }}>
-                          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                          <input
-                            type="text"
-                            placeholder="Search member..."
-                            value={levelSearchQuery}
-                            onChange={(e) => setLevelSearchQuery(e.target.value)}
-                            className="glass-input"
-                            style={{ width: '100%', paddingLeft: '34px', fontSize: '0.82rem' }}
-                          />
-                        </div>
-
-                        <select
-                          value={levelSortBy}
-                          onChange={(e) => setLevelSortBy(e.target.value)}
-                          className="glass-input"
-                          style={{ fontSize: '0.82rem', padding: '8px 12px' }}
-                        >
-                          <option value="xp">Sort: Highest XP</option>
-                          <option value="messagesCount">Sort: Most Messages</option>
-                          <option value="voiceTimeSeconds">Sort: Most Voice Time</option>
-                        </select>
-
-                        <button
-                          type="button"
-                          onClick={fetchLevelingData}
-                          className="btn-secondary"
-                          style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
-                          title="Refresh Leaderboard"
-                        >
-                          <RefreshCw size={15} className={levelLoading ? 'spin' : ''} />
-                          Refresh
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleResetAllGuildXp}
-                          style={{
-                            padding: '8px 14px',
-                            fontSize: '0.82rem',
-                            fontWeight: '700',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#f87171',
-                            borderRadius: '8px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Reset Server XP
-                        </button>
-                      </div>
-                    </div>
-
-                    {levelLoading ? (
-                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          border: '3px solid rgba(99, 102, 241, 0.2)',
-                          borderTopColor: 'var(--primary)',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite',
-                          margin: '0 auto 12px auto'
-                        }} />
-                        Fetching member levels...
-                      </div>
-                    ) : levelLeaderboard.length === 0 ? (
-                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No member XP data found for this server yet. Members earn XP as they text or stay active in voice channels!
-                      </div>
-                    ) : (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                              <th style={{ padding: '12px 16px', width: '70px' }}>Rank</th>
-                              <th style={{ padding: '12px 16px' }}>Member</th>
-                              <th style={{ padding: '12px 16px' }}>Level</th>
-                              <th style={{ padding: '12px 16px', minWidth: '220px' }}>XP Progress</th>
-                              <th style={{ padding: '12px 16px' }}>Messages</th>
-                              <th style={{ padding: '12px 16px' }}>Voice Time</th>
-                              <th style={{ padding: '12px 16px', textAlign: 'right' }}>Admin Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {levelLeaderboard.map((m) => {
-                              const voiceHours = Math.floor(m.voiceTimeSeconds / 3600);
-                              const voiceMins = Math.floor((m.voiceTimeSeconds % 3600) / 60);
-                              const voiceTimeStr = voiceHours > 0 ? `${voiceHours}h ${voiceMins}m` : `${voiceMins}m`;
-
-                              return (
-                                <tr key={m.userId} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                                  <td style={{ padding: '12px 16px', fontWeight: '800' }}>
-                                    {m.rank === 1 ? '🥇 #1' : m.rank === 2 ? '🥈 #2' : m.rank === 3 ? '🥉 #3' : `#${m.rank}`}
-                                  </td>
-                                  <td style={{ padding: '12px 16px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                      <img
-                                        src={m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
-                                        alt=""
-                                        style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
-                                        onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }}
-                                      />
-                                      <div>
-                                        <div style={{ fontWeight: '700', color: '#fff' }}>{m.username}</div>
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ID: {m.userId}</div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '12px 16px' }}>
-                                    <span style={{
-                                      padding: '4px 10px',
-                                      borderRadius: '20px',
-                                      fontSize: '0.78rem',
-                                      fontWeight: '800',
-                                      background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(147, 51, 234, 0.2))',
-                                      border: '1px solid rgba(37, 99, 235, 0.3)',
-                                      color: '#60a5fa'
-                                    }}>
-                                      Lv. {m.level}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '12px 16px' }}>
-                                    <div>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
-                                        <span style={{ fontWeight: '700', color: '#eab308' }}>{m.xp.toLocaleString()} XP</span>
-                                        <span style={{ color: 'var(--text-muted)' }}>Next: {m.nextLevelXp.toLocaleString()} XP ({m.progressPercent}%)</span>
-                                      </div>
-                                      <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <div style={{
-                                          width: `${m.progressPercent}%`,
-                                          height: '100%',
-                                          background: 'linear-gradient(90deg, #eab308, #3b82f6)',
-                                          borderRadius: '3px'
-                                        }} />
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#cbd5e1' }}>
-                                    {m.messagesCount.toLocaleString()}
-                                  </td>
-                                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#cbd5e1' }}>
-                                    {voiceTimeStr}
-                                  </td>
-                                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setLevelEditMember(m);
-                                          setLevelEditXpAction('add');
-                                          setLevelEditXpAmount(100);
-                                        }}
-                                        className="btn-secondary"
-                                        style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                      >
-                                        <Edit3 size={13} />
-                                        Adjust XP
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleResetSingleUserXp(m.userId, m.username)}
-                                        style={{
-                                          padding: '4px 8px',
-                                          fontSize: '0.75rem',
-                                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                                          background: 'rgba(239, 68, 68, 0.08)',
-                                          color: '#f87171',
-                                          borderRadius: '6px',
-                                          cursor: 'pointer'
-                                        }}
-                                        title="Reset user XP"
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Save Settings Button footer */}
               {activeTab !== 'overview' && activeTab !== 'logs' && activeTab !== 'broadcast' && activeTab !== 'publish' && activeTab !== 'polls' && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '30px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
@@ -9809,76 +9563,99 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
         </main>
       </div>
 
-      {levelEditMember && (
+      {showCropModal && uploadFile && (
+        <CropModal
+          file={uploadFile}
+          onClose={() => {
+            setShowCropModal(false);
+            setUploadFile(null);
+          }}
+          onCrop={async ({ file, cropX, cropY, cropWidth, cropHeight }) => {
+            setShowCropModal(false);
+            setUploadFile(null);
+            setSaving(true);
+            setErrorMsg(null);
+            try {
+              const res = await api.uploadBackground(guildId, file, { cropX, cropY, cropWidth, cropHeight });
+              handleInputChange('welcome.background', res.url);
+              showNotification('Background uploaded and cropped successfully!');
+            } catch (err) {
+              console.error(err);
+              setErrorMsg(err.message || 'File upload failed.');
+            } finally {
+              setSaving(false);
+            }
+          }}
+        />
+      )}
+      {showWordBulkModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '24px', borderRadius: '16px', background: '#181824', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '560px', padding: '24px', borderRadius: '16px', background: '#181824', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Award size={20} color="#eab308" /> Manage User XP & Level
+                <UploadCloud size={20} color="#3b82f6" /> Bulk Upload Filtered Words
               </h3>
-              <X size={20} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setLevelEditMember(null)} />
+              <X size={20} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setShowWordBulkModal(false)} />
             </div>
 
-            {levelEditMember.username ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.04)', marginBottom: '16px' }}>
-                <img src={levelEditMember.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-                <div>
-                  <div style={{ fontWeight: '700', color: '#fff' }}>{levelEditMember.username}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#eab308' }}>Level {levelEditMember.level} • {levelEditMember.xp.toLocaleString()} XP</div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Target Discord User ID</label>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Upload a <code>.txt</code> or <code>.csv</code> file, or paste line-by-line / comma-separated words below.
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 16px', fontSize: '0.85rem' }}>
+                <UploadCloud size={16} /> Choose File (.txt / .csv)
                 <input
-                  type="text"
-                  placeholder="Enter User ID (e.g. 123456789012345678)"
-                  value={levelEditMember.userId || ''}
-                  onChange={(e) => setLevelEditMember({ ...levelEditMember, userId: e.target.value })}
-                  className="glass-input"
-                  style={{ width: '100%' }}
-                  required
+                  type="file"
+                  accept=".txt,.csv"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        setWordBulkText(evt.target.result || '');
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
                 />
-              </div>
-            )}
+              </label>
+            </div>
 
-            <form onSubmit={handleUpdateMemberXpSubmit}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Action</label>
-                <select
-                  value={levelEditXpAction}
-                  onChange={(e) => setLevelEditXpAction(e.target.value)}
-                  className="glass-input"
-                  style={{ width: '100%' }}
-                >
-                  <option value="add">Add XP (+)</option>
-                  <option value="remove">Remove XP (-)</option>
-                  <option value="set">Set Exact Total XP (=)</option>
-                  <option value="setLevel">Set Level Directly (Lv. X)</option>
-                </select>
-              </div>
+            <textarea
+              rows="8"
+              placeholder="Paste words here (one per line or comma separated)...&#10;badword1&#10;badword2, badword3"
+              value={wordBulkText}
+              onChange={(e) => setWordBulkText(e.target.value)}
+              className="glass-input"
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.85rem', marginBottom: '16px' }}
+            />
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
-                  {levelEditXpAction === 'setLevel' ? 'Target Level Number' : 'XP Amount'}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={levelEditXpAmount}
-                  onChange={(e) => setLevelEditXpAmount(e.target.value)}
-                  className="glass-input"
-                  style={{ width: '100%' }}
-                  placeholder={levelEditXpAction === 'setLevel' ? 'e.g. 5' : 'e.g. 100'}
-                  required
-                />
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button type="button" className="btn-secondary" onClick={() => setShowWordBulkModal(false)}>Cancel</button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  if (wordBulkText.trim()) {
+                    const parsed = wordBulkText
+                      .split(/[\n,]+/)
+                      .map(w => w.trim().toLowerCase())
+                      .filter(Boolean);
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setLevelEditMember(null)}>Cancel</button>
-                <button type="submit" className="btn-primary">Update Member</button>
-              </div>
-            </form>
+                    const current = settings?.moderation?.wordFilter?.words || [];
+                    const combined = Array.from(new Set([...current, ...parsed]));
+                    handleInputChange('moderation.wordFilter.words', combined);
+                    showNotification(`Imported ${combined.length - current.length} new words into directory.`);
+                  }
+                  setWordBulkText('');
+                  setShowWordBulkModal(false);
+                }}
+              >
+                Import Words
+              </button>
+            </div>
           </div>
         </div>
       )}
