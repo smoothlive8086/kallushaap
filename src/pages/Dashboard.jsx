@@ -36,7 +36,11 @@ import {
   Search,
   Settings,
   Image as ImageIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Award,
+  Zap,
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 
 const Youtube = ({ size = 24, className = '', style = {} }) => (
@@ -760,6 +764,16 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
   const [resolvingChannel, setResolvingChannel] = useState(false);
   const [resolveSuccessMsg, setResolveSuccessMsg] = useState('');
+
+  // Member XP & Leveling State
+  const [levelLeaderboard, setLevelLeaderboard] = useState([]);
+  const [levelStats, setLevelStats] = useState(null);
+  const [levelSearchQuery, setLevelSearchQuery] = useState('');
+  const [levelSortBy, setLevelSortBy] = useState('xp');
+  const [levelLoading, setLevelLoading] = useState(false);
+  const [levelEditMember, setLevelEditMember] = useState(null);
+  const [levelEditXpAction, setLevelEditXpAction] = useState('add');
+  const [levelEditXpAmount, setLevelEditXpAmount] = useState(100);
 
   const handleResolveYoutubeChannel = async () => {
     const channelUrlInput = settings?.youtube?.channelUrl;
@@ -1651,6 +1665,85 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
 
     return () => clearTimeout(delayDebounceFn);
   }, [modWhitelistSearchQuery, guildId]);
+
+  // Leveling & XP Data Fetcher
+  const fetchLevelingData = async () => {
+    setLevelLoading(true);
+    try {
+      const [lbData, statsData] = await Promise.all([
+        api.getLevelLeaderboard(guildId, { search: levelSearchQuery, sortBy: levelSortBy }),
+        api.getLevelStats(guildId).catch(() => null)
+      ]);
+      if (lbData && lbData.members) {
+        setLevelLeaderboard(lbData.members);
+      }
+      if (statsData) {
+        setLevelStats(statsData);
+      }
+    } catch (err) {
+      console.error('[Dashboard Leveling Error] Failed to fetch leveling data:', err.message);
+    } finally {
+      setLevelLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'leveling') {
+      fetchLevelingData();
+    }
+  }, [activeTab, guildId, levelSortBy, levelSearchQuery]);
+
+  const handleUpdateMemberXpSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!levelEditMember || !levelEditMember.userId) {
+      setErrorMsg('Please select a valid member or enter a User ID.');
+      return;
+    }
+
+    try {
+      let finalAction = levelEditXpAction;
+      let finalAmount = parseInt(levelEditXpAmount) || 0;
+
+      if (levelEditXpAction === 'setLevel') {
+        const targetLevel = Math.max(0, parseInt(levelEditXpAmount) || 0);
+        finalAction = 'set';
+        // Formula: XP = (Level / 0.1)^2
+        finalAmount = Math.pow(targetLevel / 0.1, 2);
+      }
+
+      const res = await api.updateUserXp(guildId, levelEditMember.userId.trim(), {
+        action: finalAction,
+        amount: finalAmount
+      });
+      showNotification(res.message || 'Updated member XP & Level successfully!');
+      setLevelEditMember(null);
+      fetchLevelingData();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to update member XP.');
+    }
+  };
+
+  const handleResetSingleUserXp = async (userId, username) => {
+    if (!window.confirm(`Are you sure you want to reset XP and level data for ${username}? This action cannot be undone.`)) return;
+    try {
+      const res = await api.resetUserXp(guildId, userId);
+      showNotification(res.message || 'User XP reset successfully.');
+      fetchLevelingData();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to reset user XP.');
+    }
+  };
+
+  const handleResetAllGuildXp = async () => {
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to RESET ALL MEMBER XP and Level Leaderboard for this server? All XP history will be permanently deleted.`)) return;
+    try {
+      const res = await api.resetAllXp(guildId);
+      showNotification(res.message || 'Server XP leaderboard reset successfully.');
+      fetchLevelingData();
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to reset server leaderboard.');
+    }
+  };
 
   // Initialize Socket.IO connection and join room
   useEffect(() => {
@@ -2771,6 +2864,15 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
             >
               <BarChart2 size={16} />
               Premium Polls
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabClick('leveling')}
+              className={`sidebar-menu-item ${activeTab === 'leveling' ? 'active' : ''}`}
+            >
+              <Award size={16} />
+              XP & Member Levels
             </button>
 
             {user && user.isAdmin && (
@@ -9403,6 +9505,381 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 </div>
               )}
 
+              {/* TAB: XP & MEMBER LEVELS */}
+              {activeTab === 'leveling' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(245, 158, 11, 0.1))',
+                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#eab308'
+                      }}>
+                        <Award size={22} />
+                      </div>
+                      <div>
+                        <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', margin: 0 }}>
+                          Member XP & Leveling Management
+                        </h2>
+                        <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
+                          Configure text & voice channel XP rates, manage server leaderboards, and adjust member XP/levels.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Server Analytics Overview Cards */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Total Server XP</span>
+                        <Zap size={18} color="#eab308" />
+                      </div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
+                        {(levelStats?.totalXp || 0).toLocaleString()} XP
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Across all active members</div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Voice Active Time</span>
+                        <Mic size={18} color="#3b82f6" />
+                      </div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
+                        {levelStats?.totalVoiceHours || '0.0'} hrs
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Total voice channel activity</div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Messages Logged</span>
+                        <MessageSquare size={18} color="#10b981" />
+                      </div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
+                        {(levelStats?.totalMessages || 0).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Text messages sent</div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Top Server Member</span>
+                        <Award size={18} color="#f59e0b" />
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#fbbf24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {levelStats?.topMember ? levelStats.topMember.username : 'None yet'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                        {levelStats?.topMember ? `Level ${levelStats.topMember.level} • ${levelStats.topMember.xp.toLocaleString()} XP` : 'Chat to gain XP!'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Leveling System Configuration Card */}
+                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff', margin: 0 }}>Leveling Rates & Rules</h3>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                          Set XP awarded per text message and per active minute in voice channels.
+                        </p>
+                      </div>
+                      <label className="switch-toggle">
+                        <input
+                          type="checkbox"
+                          checked={settings?.leveling?.enabled !== false}
+                          onChange={(e) => handleInputChange('leveling.enabled', e.target.checked)}
+                        />
+                        <span className="slider round"></span>
+                      </label>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
+                          Text Message XP (per message)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
+                          value={settings?.leveling?.xpPerMessage ?? 15}
+                          onChange={(e) => handleInputChange('leveling.xpPerMessage', parseInt(e.target.value) || 0)}
+                          className="glass-input"
+                          style={{ width: '100%' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                          XP granted per valid text message sent
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
+                          Text Cooldown (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="600"
+                          value={settings?.leveling?.textCooldownSeconds ?? 60}
+                          onChange={(e) => handleInputChange('leveling.textCooldownSeconds', parseInt(e.target.value) || 0)}
+                          className="glass-input"
+                          style={{ width: '100%' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                          Cooldown between text messages to avoid spam
+                        </span>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
+                          Voice XP (per active minute)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
+                          value={settings?.leveling?.xpPerVoiceMinute ?? 10}
+                          onChange={(e) => handleInputChange('leveling.xpPerVoiceMinute', parseInt(e.target.value) || 0)}
+                          className="glass-input"
+                          style={{ width: '100%' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                          XP awarded every minute active in voice channels
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Leaderboard Table & Admin Controls */}
+                  <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#fff', margin: 0 }}>
+                          Member XP Leaderboard & Adjuster
+                        </h3>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                          Manage member levels, adjust XP, set level directly, or reset server history.
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Custom Adjust XP Button for any Member */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLevelEditMember({ userId: '', username: '', level: 0, xp: 0 });
+                            setLevelEditXpAction('add');
+                            setLevelEditXpAmount(100);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Plus size={15} />
+                          Adjust Member XP
+                        </button>
+
+                        <div style={{ position: 'relative', width: '180px' }}>
+                          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                          <input
+                            type="text"
+                            placeholder="Search member..."
+                            value={levelSearchQuery}
+                            onChange={(e) => setLevelSearchQuery(e.target.value)}
+                            className="glass-input"
+                            style={{ width: '100%', paddingLeft: '34px', fontSize: '0.82rem' }}
+                          />
+                        </div>
+
+                        <select
+                          value={levelSortBy}
+                          onChange={(e) => setLevelSortBy(e.target.value)}
+                          className="glass-input"
+                          style={{ fontSize: '0.82rem', padding: '8px 12px' }}
+                        >
+                          <option value="xp">Sort: Highest XP</option>
+                          <option value="messagesCount">Sort: Most Messages</option>
+                          <option value="voiceTimeSeconds">Sort: Most Voice Time</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={fetchLevelingData}
+                          className="btn-secondary"
+                          style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
+                          title="Refresh Leaderboard"
+                        >
+                          <RefreshCw size={15} className={levelLoading ? 'spin' : ''} />
+                          Refresh
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleResetAllGuildXp}
+                          style={{
+                            padding: '8px 14px',
+                            fontSize: '0.82rem',
+                            fontWeight: '700',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#f87171',
+                            borderRadius: '8px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Reset Server XP
+                        </button>
+                      </div>
+                    </div>
+
+                    {levelLoading ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          border: '3px solid rgba(99, 102, 241, 0.2)',
+                          borderTopColor: 'var(--primary)',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                          margin: '0 auto 12px auto'
+                        }} />
+                        Fetching member levels...
+                      </div>
+                    ) : levelLeaderboard.length === 0 ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No member XP data found for this server yet. Members earn XP as they text or stay active in voice channels!
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                              <th style={{ padding: '12px 16px', width: '70px' }}>Rank</th>
+                              <th style={{ padding: '12px 16px' }}>Member</th>
+                              <th style={{ padding: '12px 16px' }}>Level</th>
+                              <th style={{ padding: '12px 16px', minWidth: '220px' }}>XP Progress</th>
+                              <th style={{ padding: '12px 16px' }}>Messages</th>
+                              <th style={{ padding: '12px 16px' }}>Voice Time</th>
+                              <th style={{ padding: '12px 16px', textAlign: 'right' }}>Admin Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {levelLeaderboard.map((m) => {
+                              const voiceHours = Math.floor(m.voiceTimeSeconds / 3600);
+                              const voiceMins = Math.floor((m.voiceTimeSeconds % 3600) / 60);
+                              const voiceTimeStr = voiceHours > 0 ? `${voiceHours}h ${voiceMins}m` : `${voiceMins}m`;
+
+                              return (
+                                <tr key={m.userId} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                                  <td style={{ padding: '12px 16px', fontWeight: '800' }}>
+                                    {m.rank === 1 ? '🥇 #1' : m.rank === 2 ? '🥈 #2' : m.rank === 3 ? '🥉 #3' : `#${m.rank}`}
+                                  </td>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <img
+                                        src={m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                                        alt=""
+                                        style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                                        onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }}
+                                      />
+                                      <div>
+                                        <div style={{ fontWeight: '700', color: '#fff' }}>{m.username}</div>
+                                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ID: {m.userId}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    <span style={{
+                                      padding: '4px 10px',
+                                      borderRadius: '20px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: '800',
+                                      background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(147, 51, 234, 0.2))',
+                                      border: '1px solid rgba(37, 99, 235, 0.3)',
+                                      color: '#60a5fa'
+                                    }}>
+                                      Lv. {m.level}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    <div>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
+                                        <span style={{ fontWeight: '700', color: '#eab308' }}>{m.xp.toLocaleString()} XP</span>
+                                        <span style={{ color: 'var(--text-muted)' }}>Next: {m.nextLevelXp.toLocaleString()} XP ({m.progressPercent}%)</span>
+                                      </div>
+                                      <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{
+                                          width: `${m.progressPercent}%`,
+                                          height: '100%',
+                                          background: 'linear-gradient(90deg, #eab308, #3b82f6)',
+                                          borderRadius: '3px'
+                                        }} />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#cbd5e1' }}>
+                                    {m.messagesCount.toLocaleString()}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#cbd5e1' }}>
+                                    {voiceTimeStr}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setLevelEditMember(m);
+                                          setLevelEditXpAction('add');
+                                          setLevelEditXpAmount(100);
+                                        }}
+                                        className="btn-secondary"
+                                        style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                      >
+                                        <Edit3 size={13} />
+                                        Adjust XP
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleResetSingleUserXp(m.userId, m.username)}
+                                        style={{
+                                          padding: '4px 8px',
+                                          fontSize: '0.75rem',
+                                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                                          background: 'rgba(239, 68, 68, 0.08)',
+                                          color: '#f87171',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer'
+                                        }}
+                                        title="Reset user XP"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Save Settings Button footer */}
               {activeTab !== 'overview' && activeTab !== 'logs' && activeTab !== 'broadcast' && activeTab !== 'publish' && activeTab !== 'polls' && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '30px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
@@ -9525,6 +10002,80 @@ export default function Dashboard({ guildId, guildName, guildIcon, memberCount, 
                 Import Words
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {levelEditMember && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '24px', borderRadius: '16px', background: '#181824', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Award size={20} color="#eab308" /> Manage User XP & Level
+              </h3>
+              <X size={20} style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setLevelEditMember(null)} />
+            </div>
+
+            {levelEditMember.username ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.04)', marginBottom: '16px' }}>
+                <img src={levelEditMember.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                <div>
+                  <div style={{ fontWeight: '700', color: '#fff' }}>{levelEditMember.username}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#eab308' }}>Level {levelEditMember.level} • {levelEditMember.xp.toLocaleString()} XP</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Target Discord User ID</label>
+                <input
+                  type="text"
+                  placeholder="Enter User ID (e.g. 123456789012345678)"
+                  value={levelEditMember.userId || ''}
+                  onChange={(e) => setLevelEditMember({ ...levelEditMember, userId: e.target.value })}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  required
+                />
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateMemberXpSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>Action</label>
+                <select
+                  value={levelEditXpAction}
+                  onChange={(e) => setLevelEditXpAction(e.target.value)}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                >
+                  <option value="add">Add XP (+)</option>
+                  <option value="remove">Remove XP (-)</option>
+                  <option value="set">Set Exact Total XP (=)</option>
+                  <option value="setLevel">Set Level Directly (Lv. X)</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#e2e8f0', marginBottom: '8px' }}>
+                  {levelEditXpAction === 'setLevel' ? 'Target Level Number' : 'XP Amount'}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={levelEditXpAmount}
+                  onChange={(e) => setLevelEditXpAmount(e.target.value)}
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  placeholder={levelEditXpAction === 'setLevel' ? 'e.g. 5' : 'e.g. 100'}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" className="btn-secondary" onClick={() => setLevelEditMember(null)}>Cancel</button>
+                <button type="submit" className="btn-primary">Update Member</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
