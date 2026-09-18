@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import AdminServerSettings from '../components/AdminServerSettings';
 import {
   LogOut, Search, RefreshCw, ShieldCheck, CheckCircle2, XCircle, Clock,
   Trash2, RotateCcw, Tag, KeyRound, Loader2, Sparkles, AlertTriangle,
   Package, Plus, Edit3, Check, Layers, Crown, Sparkles as GemIcon,
-  Eye, Image as ImageIcon, QrCode, Upload
+  Eye, Image as ImageIcon, QrCode, Upload, Server
 } from 'lucide-react';
 
 export default function AdminSelector({ user, onLogout }) {
@@ -43,11 +44,35 @@ export default function AdminSelector({ user, onLogout }) {
   });
   const [packageSaving, setPackageSaving] = useState(false);
 
+  // Server XP Management State
+  const [guilds, setGuilds] = useState([]);
+  const [guildsLoading, setGuildsLoading] = useState(false);
+  const [selectedGuildId, setSelectedGuildId] = useState('');
+
   useEffect(() => {
     fetchAdminPayments();
     fetchPackages();
     fetchPaymentSettings();
+    fetchGuildsList();
   }, []);
+
+  const fetchGuildsList = async () => {
+    setGuildsLoading(true);
+    try {
+      const data = await api.getGuilds();
+      if (Array.isArray(data)) {
+        setGuilds(data);
+        if (data.length > 0 && !selectedGuildId) {
+          const defaultGuild = data.find(g => g.botInGuild) || data[0];
+          setSelectedGuildId(defaultGuild.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch guilds list for Admin Selector:', err);
+    } finally {
+      setGuildsLoading(false);
+    }
+  };
 
   const fetchPaymentSettings = async () => {
     try {
@@ -565,6 +590,41 @@ export default function AdminSelector({ user, onLogout }) {
                 <QrCode size={18} />
                 <span style={{ flex: 1 }}>UPI & QR Scanner</span>
               </button>
+
+              <button
+                onClick={() => {
+                  setMainTab('SERVERS');
+                  fetchGuildsList();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: mainTab === 'SERVERS' ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  backgroundColor: mainTab === 'SERVERS' ? '#6366f1' : 'rgba(15, 23, 42, 0.6)',
+                  color: mainTab === 'SERVERS' ? '#ffffff' : '#94a3b8',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Server size={18} />
+                <span style={{ flex: 1 }}>SERVER</span>
+                <span style={{
+                  backgroundColor: mainTab === 'SERVERS' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                  color: mainTab === 'SERVERS' ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.75rem',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  fontWeight: '800'
+                }}>
+                  {guilds.length}
+                </span>
+              </button>
             </div>
 
             {/* Payment Order Statistics */}
@@ -605,6 +665,26 @@ export default function AdminSelector({ user, onLogout }) {
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.4' }}>
                   All edits and new packages created here will be dynamically updated in the User Shop page immediately.
+                </div>
+              </div>
+            )}
+
+            {mainTab === 'SERVERS' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                <div style={{ backgroundColor: '#0f172a', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#a5b4fc', fontWeight: '600' }}>TOTAL DISCORD SERVERS</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#818cf8', marginTop: '2px' }}>{guilds.length}</div>
+                </div>
+                {selectedGuildId && (
+                  <div style={{ backgroundColor: '#0f172a', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.3)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#fef08a', fontWeight: '600' }}>ACTIVE SELECTED SERVER</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#ffffff', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {guilds.find(g => g.id === selectedGuildId)?.name || selectedGuildId}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.4' }}>
+                  Full XP breakdown, member active level details, leaderboard, level role reward configuration & XP editor.
                 </div>
               </div>
             )}
@@ -1542,6 +1622,86 @@ export default function AdminSelector({ user, onLogout }) {
                       </div>
                     </div>
                   </div>
+                </>
+              )}
+
+              {/* TAB 4: SERVER XP CONTROL */}
+              {mainTab === 'SERVERS' && (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    marginBottom: '24px',
+                    paddingBottom: '16px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <div>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Server size={26} style={{ color: '#818cf8' }} />
+                        Server XP & Member Control Panel
+                      </h2>
+                      <p style={{ fontSize: '0.83rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                        Inspect active server member XP details, level stats, level role rewards & edit member levels.
+                      </p>
+                    </div>
+
+                    {/* Server Selector Dropdown */}
+                    {guilds.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '700' }}>Select Server:</span>
+                        <select
+                          value={selectedGuildId}
+                          onChange={(e) => setSelectedGuildId(e.target.value)}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#0f172a',
+                            border: '1.5px solid rgba(99, 102, 241, 0.4)',
+                            borderRadius: '10px',
+                            color: '#ffffff',
+                            fontSize: '0.9rem',
+                            fontWeight: '700',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {guilds.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name} {g.memberCount ? `(${g.memberCount} members)` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {guildsLoading ? (
+                    <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                      <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px auto' }} />
+                      <div>Loading Discord servers...</div>
+                    </div>
+                  ) : guilds.length === 0 ? (
+                    <div style={{
+                      padding: '48px 20px',
+                      textAlign: 'center',
+                      backgroundColor: '#0f172a',
+                      borderRadius: '16px',
+                      border: '1px dashed #334155',
+                      color: '#94a3b8'
+                    }}>
+                      <Server size={36} color="#64748b" style={{ margin: '0 auto 12px auto' }} />
+                      <div style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>
+                        No Discord Servers Found
+                      </div>
+                      <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                        Ensure the Discord Bot is connected and added to your server.
+                      </div>
+                    </div>
+                  ) : selectedGuildId ? (
+                    <AdminServerSettings guildId={selectedGuildId} initialTab="levels" />
+                  ) : null}
                 </>
               )}
 

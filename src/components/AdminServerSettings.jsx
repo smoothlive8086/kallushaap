@@ -4,20 +4,20 @@ import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Lo
 import { io } from 'socket.io-client';
 
 const Youtube = ({ size = 24, className = '', style = {} }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    width={size} 
-    height={size} 
-    fill="currentColor" 
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="currentColor"
     className={className}
     style={style}
   >
-    <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.516 0-9.387.507a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.969.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.507 9.388.507 9.388.507s7.517 0 9.389-.507a3.007 3.007 0 0 0 2.11-2.11C24 15.969 24 12 24 12s0-3.969-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.516 0-9.387.507a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.969.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.507 9.388.507 9.388.507s7.517 0 9.389-.507a3.007 3.007 0 0 0 2.11-2.11C24 15.969 24 12 24 12s0-3.969-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
   </svg>
 );
 
 
-export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange }) {
+export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange, initialTab = 'settings' }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +26,13 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   const [savedSettings, setSavedSettings] = useState(null);
 
   // Sub Tab State
-  const [activeSubTab, setActiveSubTab] = useState('settings'); // 'settings' | 'members'
+  const [activeSubTab, setActiveSubTab] = useState(initialTab || 'settings');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveSubTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Guild Form State
   const [serverName, setServerName] = useState('');
@@ -385,7 +391,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setErrorMsg('Please enter a YouTube channel URL or handle.');
       return;
     }
-    
+
     setResolvingChannel(true);
     setResolveSuccessMsg('');
     setErrorMsg(null);
@@ -412,7 +418,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       .replace(/{channel}/gi, channelName || 'Smooth')
       .replace(/{title}/gi, 'My Awesome New Video!')
       .replace(/{url}/gi, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-    
+
     const parts = resolved.split(new RegExp('(\\\*\\\*.*?\\\*\\\*)', 'g'));
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
@@ -424,7 +430,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
   const handleSourceChange = (newSource) => {
     setNicknameSource(newSource);
-    
+
     let newTemplate = nicknameTemplate;
     if (newSource === 'username') {
       if (/\{display_name\}/gi.test(newTemplate)) {
@@ -680,7 +686,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
       const res = await api.updateAdminGuildDetails(guildId, formData);
       setSuccessMsg(res.message || 'Settings saved successfully!');
-      
+
       // Update data state
       setData(prev => ({
         ...prev,
@@ -688,11 +694,11 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         icon: res.icon,
         banner: res.banner
       }));
-      
+
       // Reset files
       setIconFile(null);
       setBannerFile(null);
-      
+
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
       console.error(err);
@@ -712,11 +718,11 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
     try {
       const res = await api.createChannel(guildId, newChannelName, newChannelType, newChannelParent || null);
-      
+
       // Refresh details to get complete sorted list
       const freshData = await api.getAdminGuildDetails(guildId);
       setData(freshData);
-      
+
       setNewChannelName('');
       setNewChannelParent('');
       setSuccessMsg(res.message || 'Channel created successfully!');
@@ -738,7 +744,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
     try {
       const res = await api.renameChannel(guildId, channelId, editingChannelName);
-      
+
       // Update state channel name
       setData(prev => ({
         ...prev,
@@ -767,7 +773,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
     try {
       const res = await api.deleteChannel(guildId, channelId);
-      
+
       setData(prev => ({
         ...prev,
         channels: prev.channels.filter(c => c.id !== channelId)
@@ -797,11 +803,11 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg(res.message);
       setShowTimeoutModal(false);
       setTimeoutReason('');
-      
+
       // Update local member state
       const durationNum = parseInt(timeoutDuration);
-      setMembers(prev => prev.map(m => m.id === timeoutTargetMember.id ? { 
-        ...m, 
+      setMembers(prev => prev.map(m => m.id === timeoutTargetMember.id ? {
+        ...m,
         isTimeouted: !!durationNum,
         timeoutUntil: durationNum ? new Date(Date.now() + durationNum * 60 * 1000).toISOString() : null
       } : m));
@@ -823,8 +829,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
     try {
       const res = await api.timeoutMember(guildId, member.id, null, 'Timeout removed from Admin Portal');
       setSuccessMsg(res.message);
-      setMembers(prev => prev.map(m => m.id === member.id ? { 
-        ...m, 
+      setMembers(prev => prev.map(m => m.id === member.id ? {
+        ...m,
         isTimeouted: false,
         timeoutUntil: null
       } : m));
@@ -850,7 +856,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg(res.message);
       setShowKickModal(false);
       setKickReason('');
-      
+
       setMembers(prev => prev.filter(m => m.id !== kickTargetMember.id));
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -874,7 +880,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg(res.message);
       setShowBanModal(false);
       setBanReason('');
-      
+
       setMembers(prev => prev.filter(m => m.id !== banTargetMember.id));
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -898,10 +904,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg(res.message);
       setShowNicknameModal(false);
       setNicknameReason('');
-      
+
       const updatedNick = newNickname.trim() === '' ? null : newNickname.trim();
-      setMembers(prev => prev.map(m => m.id === nicknameTargetMember.id ? { 
-        ...m, 
+      setMembers(prev => prev.map(m => m.id === nicknameTargetMember.id ? {
+        ...m,
         nickname: updatedNick,
         displayName: updatedNick || m.username
       } : m));
@@ -928,9 +934,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg(res.message);
       setShowRolesModal(false);
       setRolesReason('');
-      
-      setMembers(prev => prev.map(m => m.id === rolesTargetMember.id ? { 
-        ...m, 
+
+      setMembers(prev => prev.map(m => m.id === rolesTargetMember.id ? {
+        ...m,
         roles: res.roles
       } : m));
 
@@ -955,7 +961,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       <div style={{ textAlign: 'center', padding: '60px 0' }}>
         <Loader size={40} className="spin" style={{ color: 'var(--primary)', marginBottom: '16px' }} />
         <p style={{ color: 'var(--text-secondary)' }}>Loading live server settings...</p>
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .spin { animation: spin 1s linear infinite; }
           @keyframes spin { to { transform: rotate(360deg); } }
         `}} />
@@ -1075,23 +1082,23 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       {/* TAB 1: SERVER SETTINGS & CHANNELS */}
       {activeSubTab === 'settings' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          
+
           {/* Left Column: Server Settings */}
           <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
               Guild Visual Identity
             </h3>
-            
+
             <form onSubmit={handleSaveGuildDetails} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Server Name
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
-                  className="glass-input" 
+                  className="glass-input"
                   placeholder="e.g. My Awesome Server"
                 />
               </div>
@@ -1101,8 +1108,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   Server Invite Link
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={data?.inviteUrl || 'No invite link available (permissions missing)'}
                     readOnly
                     className="glass-input"
@@ -1133,9 +1140,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ position: 'relative' }}>
                     {iconPreview ? (
-                      <img 
-                        src={iconPreview} 
-                        alt="Icon Preview" 
+                      <img
+                        src={iconPreview}
+                        alt="Icon Preview"
                         style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-color)' }}
                       />
                     ) : (
@@ -1146,16 +1153,16 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   </div>
                   <label className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer' }}>
                     Choose Icon File
-                    <input 
-                      type="file" 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
                           setIconFile(file);
                           setIconPreview(URL.createObjectURL(file));
                         }
-                      }} 
+                      }}
                       style={{ display: 'none' }}
                     />
                   </label>
@@ -1169,9 +1176,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {bannerPreview ? (
-                    <img 
-                      src={bannerPreview} 
-                      alt="Banner Preview" 
+                    <img
+                      src={bannerPreview}
+                      alt="Banner Preview"
                       style={{ width: '100%', height: '110px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
                     />
                   ) : (
@@ -1181,16 +1188,16 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   )}
                   <label className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', alignSelf: 'flex-start' }}>
                     Choose Banner File
-                    <input 
-                      type="file" 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
                           setBannerFile(file);
                           setBannerPreview(URL.createObjectURL(file));
                         }
-                      }} 
+                      }}
                       style={{ display: 'none' }}
                     />
                   </label>
@@ -1201,7 +1208,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px', alignSelf: 'flex-start' }}>
-                <button 
+                <button
                   type="button"
                   onClick={handleResetGuildDetails}
                   disabled={saving || !hasGuildChanges}
@@ -1210,10 +1217,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 >
                   Reset
                 </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
-                  disabled={saving} 
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   {saving ? <Loader size={16} className="spin" /> : null}
@@ -1225,24 +1232,24 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
           {/* Right Column: Channels */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
+
             {/* Create Channel */}
             <div className="glass-panel" style={{ padding: '24px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
                 Create New Channel
               </h3>
-              
+
               <form onSubmit={handleCreateChannel} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       Channel Name
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newChannelName}
                       onChange={(e) => setNewChannelName(e.target.value)}
-                      className="glass-input" 
+                      className="glass-input"
                       placeholder="e.g. general-chat"
                     />
                   </div>
@@ -1250,8 +1257,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       Type
                     </label>
-                    <select 
-                      value={newChannelType} 
+                    <select
+                      value={newChannelType}
                       onChange={(e) => setNewChannelType(e.target.value)}
                       className="glass-input"
                     >
@@ -1267,8 +1274,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       Category (Parent)
                     </label>
-                    <select 
-                      value={newChannelParent} 
+                    <select
+                      value={newChannelParent}
                       onChange={(e) => setNewChannelParent(e.target.value)}
                       className="glass-input"
                     >
@@ -1280,10 +1287,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   </div>
                 )}
 
-                <button 
-                  type="submit" 
-                  className="btn-success" 
-                  disabled={creatingChannel || !newChannelName.trim()} 
+                <button
+                  type="submit"
+                  className="btn-success"
+                  disabled={creatingChannel || !newChannelName.trim()}
                   style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}
                 >
                   <Plus size={16} />
@@ -1297,21 +1304,21 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
                 Server Channels ({data?.channels.length || 0})
               </h3>
-              
+
               <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '400px', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
                 {!data?.channels || data?.channels.length === 0 ? (
                   <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>No channels found.</p>
                 ) : (
                   data?.channels.map(channel => (
-                    <div 
-                      key={channel.id} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between', 
-                        padding: '8px 12px', 
-                        borderRadius: '8px', 
-                        backgroundColor: channel.type === 4 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)', 
+                    <div
+                      key={channel.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: channel.type === 4 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)',
                         border: '1px solid rgba(255,255,255,0.03)',
                         transition: 'all 0.2s ease',
                         fontWeight: channel.type === 4 ? '700' : '400',
@@ -1320,10 +1327,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1, minWidth: 0 }}>
                         {getChannelIcon(channel.type)}
-                        
+
                         {editingChannelId === channel.id ? (
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={editingChannelName}
                             onChange={(e) => setEditingChannelName(e.target.value)}
                             onKeyDown={(e) => {
@@ -1335,8 +1342,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             autoFocus
                           />
                         ) : (
-                          <span style={{ 
-                            fontSize: '0.9rem', 
+                          <span style={{
+                            fontSize: '0.9rem',
                             color: channel.type === 4 ? '#ffffff' : 'var(--text-secondary)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -1350,18 +1357,18 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
                         {editingChannelId === channel.id ? (
                           <>
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => handleRenameChannel(channel.id)} 
+                              onClick={() => handleRenameChannel(channel.id)}
                               disabled={updatingChannelId === channel.id}
                               style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                               title="Save"
                             >
                               {updatingChannelId === channel.id ? <Loader size={14} className="spin" /> : <Check size={16} />}
                             </button>
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => setEditingChannelId(null)} 
+                              onClick={() => setEditingChannelId(null)}
                               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                               title="Cancel"
                             >
@@ -1370,12 +1377,12 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                           </>
                         ) : (
                           <>
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 setEditingChannelId(channel.id);
                                 setEditingChannelName(channel.name);
-                              }} 
+                              }}
                               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', transition: 'color 0.2s' }}
                               onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
                               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
@@ -1383,9 +1390,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             >
                               <Edit3 size={14} />
                             </button>
-                            <button 
+                            <button
                               type="button"
-                              onClick={() => handleDeleteChannel(channel.id, channel.name)} 
+                              onClick={() => handleDeleteChannel(channel.id, channel.name)}
                               disabled={deletingChannelId === channel.id}
                               style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', opacity: 0.7, transition: 'opacity 0.2s' }}
                               onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
@@ -1415,7 +1422,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               <Users size={20} style={{ color: 'var(--primary)' }} />
               Manage Server Members
             </h3>
-            
+
             {/* Search Input */}
             <form onSubmit={(e) => { e.preventDefault(); fetchMembers(searchQuery); }} style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '320px' }}>
               <div style={{ position: 'relative', flexGrow: 1 }}>
@@ -1481,9 +1488,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       {/* Avatar + Username */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <img 
-                            src={member.avatar} 
-                            alt={member.username} 
+                          <img
+                            src={member.avatar}
+                            alt={member.username}
                             style={{ width: '38px', height: '38px', borderRadius: '50%', border: '1px solid var(--border-color)', objectFit: 'cover' }}
                             onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }}
                           />
@@ -1505,7 +1512,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No roles</span>
                           ) : (
                             member.roles.slice(0, 3).map(role => (
-                              <span 
+                              <span
                                 key={role.id}
                                 style={{
                                   fontSize: '0.68rem',
@@ -1650,7 +1657,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       {/* TAB 3: BULK NICKNAMES */}
       {activeSubTab === 'bulk-nicknames' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          
+
           {/* Left Column: Form Controls */}
           <div className="glass-panel" style={{ padding: '24px', height: 'fit-content' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
@@ -1662,11 +1669,11 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Nickname Template
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={nicknameTemplate}
                   onChange={(e) => setNicknameTemplate(e.target.value)}
-                  className="glass-input" 
+                  className="glass-input"
                   placeholder="e.g. {DISPLAY_NAME}"
                   disabled={applyingBulk}
                 />
@@ -1681,10 +1688,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="radio" 
-                      name="sourceNameType" 
-                      value="displayName" 
+                    <input
+                      type="radio"
+                      name="sourceNameType"
+                      value="displayName"
                       checked={nicknameSource === 'displayName'}
                       onChange={() => handleSourceChange('displayName')}
                       disabled={applyingBulk}
@@ -1692,10 +1699,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     Display Name (Nickname)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="radio" 
-                      name="sourceNameType" 
-                      value="username" 
+                    <input
+                      type="radio"
+                      name="sourceNameType"
+                      value="username"
                       checked={nicknameSource === 'username'}
                       onChange={() => handleSourceChange('username')}
                       disabled={applyingBulk}
@@ -1711,10 +1718,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="radio" 
-                      name="casing" 
-                      value="original" 
+                    <input
+                      type="radio"
+                      name="casing"
+                      value="original"
                       checked={nicknameCasing === 'original'}
                       onChange={() => setNicknameCasing('original')}
                       disabled={applyingBulk}
@@ -1722,10 +1729,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     Keep Original (e.g. {nicknameSource === 'username' ? 'smooth' : 'Smooth'})
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="radio" 
-                      name="casing" 
-                      value="upper" 
+                    <input
+                      type="radio"
+                      name="casing"
+                      value="upper"
                       checked={nicknameCasing === 'upper'}
                       onChange={() => setNicknameCasing('upper')}
                       disabled={applyingBulk}
@@ -1733,10 +1740,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     UPPERCASE (e.g. SMOOTH)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="radio" 
-                      name="casing" 
-                      value="lower" 
+                    <input
+                      type="radio"
+                      name="casing"
+                      value="lower"
                       checked={nicknameCasing === 'lower'}
                       onChange={() => setNicknameCasing('lower')}
                       disabled={applyingBulk}
@@ -1756,10 +1763,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   <div style={{ fontSize: '0.95rem', color: 'var(--primary)', fontWeight: 'bold' }}>
                     Result: {(() => {
                       const baseName = nicknameSource === 'username' ? 'johndoe' : 'JohnDoe';
-                      const finalName = nicknameCasing === 'upper' 
-                        ? baseName.toUpperCase() 
-                        : nicknameCasing === 'lower' 
-                          ? baseName.toLowerCase() 
+                      const finalName = nicknameCasing === 'upper'
+                        ? baseName.toUpperCase()
+                        : nicknameCasing === 'lower'
+                          ? baseName.toLowerCase()
                           : baseName;
                       const preview = nicknameTemplate
                         .replace(/\{username\}/gi, finalName)
@@ -1771,21 +1778,21 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={handleApplyBulkNicknames}
-                  className="btn-primary" 
-                  disabled={applyingBulk || !nicknameTemplate.trim()} 
+                  className="btn-primary"
+                  disabled={applyingBulk || !nicknameTemplate.trim()}
                   style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
                   {applyingBulk ? <Loader size={16} className="spin" /> : null}
                   Apply to All Members
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={handleResetBulkNicknames}
-                  className="btn-secondary" 
-                  disabled={applyingBulk} 
+                  className="btn-secondary"
+                  disabled={applyingBulk}
                   style={{ flexGrow: 1, color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
                 >
                   Reset Nicknames
@@ -1808,7 +1815,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
-                
+
                 {/* Status Indicator */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Status:</span>
@@ -1817,15 +1824,15 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     fontWeight: '700',
                     padding: '4px 10px',
                     borderRadius: '12px',
-                    backgroundColor: nicknameProgress.status === 'processing' 
-                      ? 'rgba(37, 99, 235, 0.15)' 
-                      : nicknameProgress.status === 'completed' 
-                        ? 'rgba(16, 185, 129, 0.15)' 
+                    backgroundColor: nicknameProgress.status === 'processing'
+                      ? 'rgba(37, 99, 235, 0.15)'
+                      : nicknameProgress.status === 'completed'
+                        ? 'rgba(16, 185, 129, 0.15)'
                         : 'rgba(239, 68, 68, 0.15)',
-                    color: nicknameProgress.status === 'processing' 
-                      ? 'var(--primary)' 
-                      : nicknameProgress.status === 'completed' 
-                        ? 'var(--success)' 
+                    color: nicknameProgress.status === 'processing'
+                      ? 'var(--primary)'
+                      : nicknameProgress.status === 'completed'
+                        ? 'var(--success)'
                         : 'var(--danger)',
                     border: `1px solid ${nicknameProgress.status === 'processing' ? 'rgba(37, 99, 235, 0.3)' : nicknameProgress.status === 'completed' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
                   }}>
@@ -1869,7 +1876,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 {/* Activity Log */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Activity Log</span>
-                  <div 
+                  <div
                     ref={logContainerRef}
                     style={{
                       width: '100%',
@@ -1890,20 +1897,20 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', margin: 'auto' }}>Waiting for updates...</span>
                     ) : (
                       nicknameProgress.logs.map((log, idx) => (
-                        <div key={idx} style={{ 
-                          display: 'flex', 
-                          alignItems: 'flex-start', 
+                        <div key={idx} style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
                           gap: '6px',
-                          color: log.status === 'success' 
-                            ? 'var(--success)' 
-                            : log.status === 'fail' 
-                              ? 'var(--danger)' 
+                          color: log.status === 'success'
+                            ? 'var(--success)'
+                            : log.status === 'fail'
+                              ? 'var(--danger)'
                               : '#ffffff'
                         }}>
                           {log.status === 'success' && <span style={{ color: 'var(--success)' }}>[✓]</span>}
                           {log.status === 'fail' && <span style={{ color: 'var(--danger)' }}>[✗]</span>}
                           {log.status === 'info' && <span style={{ color: 'var(--secondary)' }}>[i]</span>}
-                          
+
                           <div style={{ textAlign: 'left' }}>
                             {log.status === 'success' && (
                               <span>Changed <strong>@{log.username}</strong> to <code>{log.nickname}</code></span>
@@ -1923,8 +1930,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
                 {/* Cancel Button */}
                 {nicknameProgress.status === 'processing' && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handleCancelBulkNicknames}
                     className="btn-secondary"
                     style={{ width: '100%', marginTop: '10px', borderColor: 'var(--danger)', color: 'var(--danger)' }}
@@ -1950,7 +1957,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
           ) : settings && (
             <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'rgba(255,255,255,0.01)' }}>
-                
+
                 {/* Toggle header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                   <div>
@@ -1958,9 +1965,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Toggle the automated YouTube uploader checker system.</p>
                   </div>
                   <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={settings.youtube?.enabled || false} 
+                    <input
+                      type="checkbox"
+                      checked={settings.youtube?.enabled || false}
                       onChange={() => handleToggle('youtube.enabled')}
                     />
                     <span className="slider"></span>
@@ -1969,16 +1976,16 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
                 {settings.youtube?.enabled && (
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    
+
                     {/* Account URL Row */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                         YouTube Channel URL or Handle <span style={{ color: 'var(--danger)' }}>*</span>
                       </label>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <input 
-                          type="text" 
-                          value={settings.youtube?.channelUrl || ''} 
+                        <input
+                          type="text"
+                          value={settings.youtube?.channelUrl || ''}
                           onChange={(e) => handleInputChange('youtube.channelUrl', e.target.value)}
                           className="glass-input"
                           placeholder="e.g. @smooth or https://youtube.com/channel/UC..."
@@ -2000,9 +2007,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
                     {/* Resolved Channel details */}
                     {settings.youtube?.channelId && (
-                      <div className="glass-panel" style={{ 
-                        padding: '12px 16px', 
-                        backgroundColor: 'rgba(37, 99, 235, 0.05)', 
+                      <div className="glass-panel" style={{
+                        padding: '12px 16px',
+                        backgroundColor: 'rgba(37, 99, 235, 0.05)',
                         borderColor: 'rgba(37, 99, 235, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
@@ -2030,13 +2037,13 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
                     {/* Selectors row */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                      
+
                       {/* Announcement Discord Channel */}
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                           Announcement Discord Channel <span style={{ color: 'var(--danger)' }}>*</span>
                         </label>
-                        <select 
+                        <select
                           value={settings.youtube?.targetChannelId || ''}
                           onChange={(e) => handleInputChange('youtube.targetChannelId', e.target.value)}
                           className="glass-input"
@@ -2056,7 +2063,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                           Mention Role (Ping)
                         </label>
-                        <select 
+                        <select
                           value={settings.youtube?.pingRoleId || ''}
                           onChange={(e) => handleInputChange('youtube.pingRoleId', e.target.value)}
                           className="glass-input"
@@ -2080,7 +2087,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                         Video Upload Message Template
                       </label>
-                      <textarea 
+                      <textarea
                         value={settings.youtube?.messageTemplate || ''}
                         onChange={(e) => handleInputChange('youtube.messageTemplate', e.target.value)}
                         className="glass-input"
@@ -2097,7 +2104,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                         Live Discord Announcement Preview
                       </label>
-                      
+
                       <div style={{
                         backgroundColor: '#313338',
                         borderRadius: '8px',
@@ -2112,9 +2119,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                         maxWidth: '520px'
                       }}>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                          <img 
-                            src={data?.icon || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
-                            alt="" 
+                          <img
+                            src={data?.icon || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                            alt=""
                             style={{ width: '36px', height: '36px', borderRadius: '50%' }}
                           />
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2143,21 +2150,21 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             <div style={{ marginTop: '4px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                               {/* Ping preview */}
                               {settings.youtube?.pingRoleId && settings.youtube?.pingRoleId !== 'none' && (
-                                <span style={{ 
-                                  backgroundColor: 'rgba(88, 101, 242, 0.3)', 
-                                  color: '#c9cdfb', 
-                                  padding: '0 4px', 
-                                  borderRadius: '3px', 
+                                <span style={{
+                                  backgroundColor: 'rgba(88, 101, 242, 0.3)',
+                                  color: '#c9cdfb',
+                                  padding: '0 4px',
+                                  borderRadius: '3px',
                                   fontWeight: '500',
                                   marginRight: '6px',
                                   userSelect: 'none'
                                 }}>
-                                  {settings.youtube?.pingRoleId === 'everyone' ? '@everyone' : 
-                                   settings.youtube?.pingRoleId === 'here' ? '@here' : 
-                                   `@${serverRoles.find(r => r.id === settings.youtube?.pingRoleId)?.name || 'Role'}`}
+                                  {settings.youtube?.pingRoleId === 'everyone' ? '@everyone' :
+                                    settings.youtube?.pingRoleId === 'here' ? '@here' :
+                                      `@${serverRoles.find(r => r.id === settings.youtube?.pingRoleId)?.name || 'Role'}`}
                                 </span>
                               )}
-                              
+
                               {formatPreviewMessage(settings.youtube?.messageTemplate, settings.youtube?.channelName)}
                             </div>
                           </div>
@@ -2170,7 +2177,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
                 {/* Submit button footer */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                  <button 
+                  <button
                     type="button"
                     onClick={handleResetSettings}
                     disabled={saving || !hasYoutubeChanges}
@@ -2179,9 +2186,9 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   >
                     Reset
                   </button>
-                  <button 
-                    type="submit" 
-                    disabled={saving} 
+                  <button
+                    type="submit"
+                    disabled={saving}
                     className="btn-primary"
                     style={{ gap: '10px', display: 'flex', alignItems: 'center', padding: '10px 20px' }}
                   >
@@ -2228,7 +2235,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Timeout Duration
                 </label>
-                <select 
+                <select
                   value={timeoutDuration}
                   onChange={(e) => setTimeoutDuration(e.target.value)}
                   className="glass-input"
@@ -2246,7 +2253,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Reason (Optional)
                 </label>
-                <input 
+                <input
                   type="text"
                   value={timeoutReason}
                   onChange={(e) => setTimeoutReason(e.target.value)}
@@ -2302,7 +2309,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Reason (Optional)
                 </label>
-                <input 
+                <input
                   type="text"
                   value={kickReason}
                   onChange={(e) => setKickReason(e.target.value)}
@@ -2358,7 +2365,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Reason (Optional)
                 </label>
-                <input 
+                <input
                   type="text"
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
@@ -2414,7 +2421,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Nickname
                 </label>
-                <input 
+                <input
                   type="text"
                   value={newNickname}
                   onChange={(e) => setNewNickname(e.target.value)}
@@ -2428,7 +2435,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Reason (Optional)
                 </label>
-                <input 
+                <input
                   type="text"
                   value={nicknameReason}
                   onChange={(e) => setNicknameReason(e.target.value)}
@@ -2483,14 +2490,14 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             </p>
 
             <form onSubmit={handleRolesSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flexGrow: 1, minHeight: 0 }}>
-              
+
               {/* Roles list container */}
-              <div style={{ 
-                flexGrow: 1, 
-                overflowY: 'auto', 
-                maxHeight: '280px', 
-                border: '1px solid var(--border-color)', 
-                borderRadius: '8px', 
+              <div style={{
+                flexGrow: 1,
+                overflowY: 'auto',
+                maxHeight: '280px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
                 padding: '12px',
                 backgroundColor: 'rgba(0,0,0,0.2)',
                 display: 'flex',
@@ -2512,7 +2519,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     const isManageable = role.manageable;
 
                     return (
-                      <label 
+                      <label
                         key={role.id}
                         style={{
                           display: 'flex',
@@ -2528,7 +2535,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input 
+                          <input
                             type="checkbox"
                             checked={isChecked}
                             disabled={!isManageable}
@@ -2550,7 +2557,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             {role.name}
                           </span>
                         </div>
-                        
+
                         {!isManageable && (
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Too high / Managed
@@ -2566,7 +2573,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Reason (Optional)
                 </label>
-                <input 
+                <input
                   type="text"
                   value={rolesReason}
                   onChange={(e) => setRolesReason(e.target.value)}
@@ -2664,7 +2671,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
