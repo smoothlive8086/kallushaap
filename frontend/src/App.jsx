@@ -71,10 +71,10 @@ export default function App() {
         setAuthError(null);
         try {
           const { token, user: discordUser } = await api.exchangeCode(code);
-          
+
           setToken(token);
           setUser(discordUser);
-          
+
           setCurrentUser(discordUser);
           setView('authorized');
 
@@ -117,7 +117,8 @@ export default function App() {
           animation: 'spin 1s linear infinite'
         }} />
         <h3 style={{ fontFamily: 'Outfit', fontWeight: '700' }}>Authorizing Account...</h3>
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes spin {
             to { transform: rotate(360deg); }
           }
@@ -128,7 +129,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden', backgroundColor: '#f5f4eb' }}>
-      
+
       {authError && (
         <div className="glass-panel" style={{
           position: 'fixed',
@@ -143,8 +144,8 @@ export default function App() {
           zIndex: 1000
         }}>
           {authError}
-          <button 
-            onClick={() => setAuthError(null)} 
+          <button
+            onClick={() => setAuthError(null)}
             style={{ marginLeft: '12px', background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
           >
             ×
@@ -154,7 +155,7 @@ export default function App() {
 
       {/* KeyAuth Admin Login Modal */}
       {showAdminLogin && (
-        <AdminLogin 
+        <AdminLogin
           onBack={() => setShowAdminLogin(false)}
           onLoginSuccess={handleAdminLoginSuccess}
         />
@@ -162,14 +163,14 @@ export default function App() {
 
       {/* Main Views */}
       {view === 'admin' && user && user.isAdmin ? (
-        <AdminSelector 
-          user={user} 
-          onLogout={handleLogout} 
+        <AdminSelector
+          user={user}
+          onLogout={handleLogout}
         />
       ) : view === 'authorized' && user ? (
-        <GuildSelector 
-          user={user} 
-          onLogout={handleLogout} 
+        <GuildSelector
+          user={user}
+          onLogout={handleLogout}
         />
       ) : (
         <LandingPage />

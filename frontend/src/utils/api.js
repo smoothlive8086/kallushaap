@@ -33,8 +33,9 @@ export const getUser = () => {
 
 const request = async (endpoint, options = {}) => {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers
   };
@@ -142,6 +143,64 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+
+  // Server Admin & Management API Endpoints
+  getSettings: (guildId) => request(`/guilds/${guildId}/settings`),
+  saveSettings: (guildId, settings) => request(`/guilds/${guildId}/settings`, {
+    method: 'POST',
+    body: JSON.stringify(settings)
+  }),
+  getAdminGuildDetails: (guildId) => request(`/guilds/${guildId}`),
+  updateAdminGuildDetails: (guildId, formData) => request(`/guilds/${guildId}`, {
+    method: 'POST',
+    body: formData
+  }),
+  getAdminMembers: (guildId, query = '') => request(`/guilds/${guildId}/members?query=${encodeURIComponent(query)}`),
+  getAdminGuildRoles: (guildId) => request(`/guilds/${guildId}/roles`),
+  createChannel: (guildId, name, type, parentId = null) => request(`/guilds/${guildId}/channels`, {
+    method: 'POST',
+    body: JSON.stringify({ name, type, parentId })
+  }),
+  renameChannel: (guildId, channelId, name) => request(`/guilds/${guildId}/channels/${channelId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name })
+  }),
+  deleteChannel: (guildId, channelId) => request(`/guilds/${guildId}/channels/${channelId}`, {
+    method: 'DELETE'
+  }),
+  timeoutMember: (guildId, memberId, duration, reason) => request(`/guilds/${guildId}/members/${memberId}/timeout`, {
+    method: 'POST',
+    body: JSON.stringify({ duration, reason })
+  }),
+  kickMember: (guildId, memberId, reason) => request(`/guilds/${guildId}/members/${memberId}/kick`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  }),
+  banMember: (guildId, memberId, reason) => request(`/guilds/${guildId}/members/${memberId}/ban`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  }),
+  changeNickname: (guildId, memberId, nickname, reason) => request(`/guilds/${guildId}/members/${memberId}/nickname`, {
+    method: 'POST',
+    body: JSON.stringify({ nickname, reason })
+  }),
+  updateMemberRoles: (guildId, memberId, roleIds, reason) => request(`/guilds/${guildId}/members/${memberId}/roles`, {
+    method: 'POST',
+    body: JSON.stringify({ roleIds, reason })
+  }),
+  startBulkNickname: (guildId, data) => request(`/guilds/${guildId}/bulk-nickname`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getBulkNicknameStatus: (guildId) => request(`/guilds/${guildId}/bulk-nickname/status`),
+  cancelBulkNickname: (guildId) => request(`/guilds/${guildId}/bulk-nickname/cancel`, {
+    method: 'POST'
+  }),
+  resolveYoutubeChannel: (guildId, channelUrl) => request(`/guilds/${guildId}/youtube/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ channelUrl })
+  }),
+
   // Member XP & Leveling API Endpoints
   getLevelLeaderboard: (guildId, params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -157,6 +216,7 @@ export const api = {
   resetAllXp: (guildId) => request(`/guilds/${guildId}/levels/reset-all`, {
     method: 'POST'
   }),
-  getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`)
+  getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`),
+  autoGenerateLevelRoles: (guildId) => request(`/guilds/${guildId}/levels/auto-generate-roles`, { method: 'POST' })
 };
 
