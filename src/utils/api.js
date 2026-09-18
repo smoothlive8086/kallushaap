@@ -142,6 +142,90 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+  // Guild Settings API Endpoints
+  getSettings: (guildId) => request(`/settings/${guildId}`),
+  saveSettings: (guildId, data) => request(`/settings/${guildId}`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  // Server Control & Admin Management Endpoints
+  getAdminGuildDetails: async (guildId) => {
+    try {
+      return await request(`/admin/guilds/${guildId}`);
+    } catch {
+      return await request(`/guilds/${guildId}`);
+    }
+  },
+  updateAdminGuildDetails: async (guildId, formData) => {
+    const token = getToken();
+    const response = await fetch(`${API_URL}/admin/guilds/${guildId}`, {
+      method: 'POST',
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      body: formData
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+  createChannel: (guildId, name, type, parentId) => request(`/admin/guilds/${guildId}/channels`, {
+    method: 'POST',
+    body: JSON.stringify({ name, type, parentId })
+  }),
+  renameChannel: (guildId, channelId, name) => request(`/admin/guilds/${guildId}/channels/${channelId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name })
+  }),
+  deleteChannel: (guildId, channelId) => request(`/admin/guilds/${guildId}/channels/${channelId}`, {
+    method: 'DELETE'
+  }),
+  getAdminMembers: async (guildId, query = '') => {
+    try {
+      return await request(`/admin/guilds/${guildId}/members?query=${encodeURIComponent(query)}`);
+    } catch {
+      return await request(`/guilds/${guildId}/members?query=${encodeURIComponent(query)}`);
+    }
+  },
+  getAdminGuildRoles: async (guildId) => {
+    try {
+      return await request(`/guilds/${guildId}/roles`);
+    } catch {
+      return await request(`/admin/guilds/${guildId}/roles`);
+    }
+  },
+  timeoutMember: (guildId, userId, duration, reason) => request(`/admin/guilds/${guildId}/members/${userId}/timeout`, {
+    method: 'POST',
+    body: JSON.stringify({ duration, reason })
+  }),
+  kickMember: (guildId, userId, reason) => request(`/admin/guilds/${guildId}/members/${userId}/kick`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  }),
+  banMember: (guildId, userId, reason) => request(`/admin/guilds/${guildId}/members/${userId}/ban`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  }),
+  changeNickname: (guildId, userId, nickname, reason) => request(`/admin/guilds/${guildId}/members/${userId}/nickname`, {
+    method: 'POST',
+    body: JSON.stringify({ nickname, reason })
+  }),
+  updateMemberRoles: (guildId, userId, roleIds, reason) => request(`/admin/guilds/${guildId}/members/${userId}/roles`, {
+    method: 'POST',
+    body: JSON.stringify({ roleIds, reason })
+  }),
+  startBulkNickname: (guildId, data) => request(`/admin/guilds/${guildId}/bulk-nickname`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getBulkNicknameStatus: (guildId) => request(`/admin/guilds/${guildId}/bulk-nickname/status`),
+  cancelBulkNickname: (guildId) => request(`/admin/guilds/${guildId}/bulk-nickname/cancel`, { method: 'POST' }),
+  resolveYoutubeChannel: (guildId, channelUrl) => request(`/admin/guilds/${guildId}/youtube/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ channelUrl })
+  }),
+
   // Member XP & Leveling API Endpoints
   getLevelLeaderboard: (guildId, params = {}) => {
     const query = new URLSearchParams(params).toString();
