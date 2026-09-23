@@ -3,18 +3,7 @@ import { api } from '../utils/api';
 import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-const Youtube = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    fill="currentColor"
-    className={className}
-    style={style}
-  >
-    <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.516 0-9.387.507a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.969.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.507 9.388.507 9.388.507s7.517 0 9.389-.507a3.007 3.007 0 0 0 2.11-2.11C24 15.969 24 12 24 12s0-3.969-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-  </svg>
-);
+
 
 
 const DEFAULT_LEVEL_CONFIGS = [
@@ -144,6 +133,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
       if (sData) {
         if (!sData.leveling) sData.leveling = {};
+        if (sData.leveling.removePreviousRoles === undefined) sData.leveling.removePreviousRoles = true;
+        if (sData.leveling.notifyLevelUp === undefined) sData.leveling.notifyLevelUp = true;
+        if (sData.leveling.levelUpChannelId === undefined) sData.leveling.levelUpChannelId = '';
+        if (!sData.leveling.levelUpMessage) sData.leveling.levelUpMessage = '🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀';
         if (!sData.leveling.levelRoles || sData.leveling.levelRoles.length === 0) {
           sData.leveling.levelRoles = JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
         } else {
@@ -480,64 +473,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
     });
   };
 
-  const handleSaveSettings = async (e) => {
-    if (e) e.preventDefault();
-    setSaving(true);
-    setSuccessMsg(null);
-    setErrorMsg(null);
-    try {
-      const updated = await api.saveSettings(guildId, settings);
-      setSettings(updated);
-      setSavedSettings(JSON.parse(JSON.stringify(updated)));
-      setSuccessMsg('YouTube settings saved successfully!');
-      setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Failed to save YouTube settings. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const isSettingsEqual = (a, b) => {
-    if (a === b) return true;
-    if (a == null || b == null) {
-      return a == b;
-    }
-    if (typeof a !== 'object' || typeof b !== 'object') {
-      if (typeof a === 'number' || typeof b === 'number') {
-        return Number(a) === Number(b);
-      }
-      if (typeof a === 'boolean' || typeof b === 'boolean') {
-        return Boolean(a) === Boolean(b);
-      }
-      return a === b;
-    }
-
-    if (Array.isArray(a) !== Array.isArray(b)) return false;
-    if (Array.isArray(a)) {
-      if (a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i++) {
-        if (!isSettingsEqual(a[i], b[i])) return false;
-      }
-      return true;
-    }
-
-    const keysA = Object.keys(a).filter(k => k !== '_id' && k !== '__v' && a[k] !== undefined && a[k] !== null);
-    const keysB = Object.keys(b).filter(k => k !== '_id' && k !== '__v' && b[k] !== undefined && b[k] !== null);
-
-    if (keysA.length !== keysB.length) return false;
-
-    for (const key of keysA) {
-      if (!keysB.includes(key)) return false;
-      if (!isSettingsEqual(a[key], b[key])) return false;
-    }
-    return true;
-  };
-
   const hasGuildChanges = !!(data && (serverName !== data.name || iconFile !== null || bannerFile !== null));
-  const hasYoutubeChanges = !!(settings && savedSettings && !isSettingsEqual(settings.youtube, savedSettings.youtube));
-  const hasUnsavedChanges = hasGuildChanges || hasYoutubeChanges;
+  const hasUnsavedChanges = hasGuildChanges;
 
   useEffect(() => {
     if (onHasUnsavedChangesChange) {
@@ -548,10 +485,6 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   const handleSubTabClick = (newSubTab) => {
     if (activeSubTab === 'settings' && hasGuildChanges) {
       alert("You have unsaved server settings changes. Please save or reset before leaving this feature.");
-      return;
-    }
-    if (activeSubTab === 'youtube' && hasYoutubeChanges) {
-      alert("You have unsaved YouTube announcements changes. Please save or reset before leaving this feature.");
       return;
     }
     setActiveSubTab(newSubTab);
@@ -567,57 +500,6 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       setSuccessMsg('Changes reset to previously saved server details.');
       setTimeout(() => setSuccessMsg(null), 4000);
     }
-  };
-
-  const handleResetSettings = () => {
-    if (savedSettings) {
-      setSettings(JSON.parse(JSON.stringify(savedSettings)));
-      setSuccessMsg('Changes reset to previously saved YouTube announcements.');
-      setTimeout(() => setSuccessMsg(null), 4000);
-    }
-  };
-
-  const handleResolveYoutubeChannel = async () => {
-    const channelUrlInput = settings?.youtube?.channelUrl;
-    if (!channelUrlInput) {
-      setErrorMsg('Please enter a YouTube channel URL or handle.');
-      return;
-    }
-
-    setResolvingChannel(true);
-    setResolveSuccessMsg('');
-    setErrorMsg(null);
-    try {
-      const res = await api.resolveYoutubeChannel(guildId, channelUrlInput);
-      handleInputChange('youtube.channelId', res.channelId);
-      handleInputChange('youtube.channelName', res.channelName);
-      handleInputChange('youtube.channelUrl', res.channelUrl);
-      setResolveSuccessMsg(`Successfully connected to channel: ${res.channelName}`);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err.message || 'Failed to resolve YouTube channel.');
-    } finally {
-      setResolvingChannel(false);
-    }
-  };
-
-  const formatPreviewMessage = (template, channelName) => {
-    let resolved = template || '{url}';
-    if (!/{url}/i.test(resolved)) {
-      resolved = resolved.trim() ? `${resolved.trim()}\n{url}` : '{url}';
-    }
-    resolved = resolved
-      .replace(/{channel}/gi, channelName || 'Smooth')
-      .replace(/{title}/gi, 'My Awesome New Video!')
-      .replace(/{url}/gi, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-
-    const parts = resolved.split(new RegExp('(\\\*\\\*.*?\\\*\\\*)', 'g'));
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index} style={{ color: '#ffffff' }}>{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
   };
 
   const handleSourceChange = (newSource) => {
@@ -2384,6 +2266,157 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             </div>
           </div>
 
+          {/* Level Role Automation & Upgrades Panel */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={22} color="#10b981" />
+                  Level-Up Role Rewards & Announcement Automation
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                  Configure automatic role promotion, role replacement on level-up, and chat celebration messages.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Toggle: Remove Older Level Roles */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                gap: '20px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ flex: '1 1 300px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '0.98rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span>Automatically Remove Older Level Roles</span>
+                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontWeight: '800', letterSpacing: '0.5px' }}>
+                      RECOMMENDED
+                    </span>
+                  </div>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: '1.5' }}>
+                    When members gain XP and level up, the bot automatically removes their previous/older level roles and grants the new level role (e.g., reaching Level 2 removes Level 1 and gives Level 2). When turned off, level roles stack.
+                  </p>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings?.leveling?.removePreviousRoles !== false}
+                    onChange={() => handleToggle('leveling.removePreviousRoles')}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: settings?.leveling?.removePreviousRoles !== false ? '#10b981' : '#334155',
+                    transition: '.3s', borderRadius: '34px',
+                    boxShadow: settings?.leveling?.removePreviousRoles !== false ? '0 0 12px rgba(16, 185, 129, 0.4)' : 'none'
+                  }}>
+                    <span style={{
+                      position: 'absolute', content: '""', height: '20px', width: '20px',
+                      left: settings?.leveling?.removePreviousRoles !== false ? '26px' : '4px',
+                      bottom: '4px', backgroundColor: '#ffffff', transition: '.3s', borderRadius: '50%'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              {/* Toggle & Config: Level-Up Announcements */}
+              <div style={{
+                padding: '18px 20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '14px' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.98rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MessageSquare size={18} color="#38bdf8" />
+                      <span>Send Level-Up Announcement in Chat</span>
+                    </div>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      Congratulate members when they earn enough XP to advance to a higher level.
+                    </p>
+                  </div>
+
+                  <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings?.leveling?.notifyLevelUp !== false}
+                      onChange={() => handleToggle('leveling.notifyLevelUp')}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: settings?.leveling?.notifyLevelUp !== false ? '#38bdf8' : '#334155',
+                      transition: '.3s', borderRadius: '34px',
+                      boxShadow: settings?.leveling?.notifyLevelUp !== false ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none'
+                    }}>
+                      <span style={{
+                        position: 'absolute', content: '""', height: '20px', width: '20px',
+                        left: settings?.leveling?.notifyLevelUp !== false ? '26px' : '4px',
+                        bottom: '4px', backgroundColor: '#ffffff', transition: '.3s', borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {settings?.leveling?.notifyLevelUp !== false && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: '600' }}>
+                        Announcement Channel
+                      </label>
+                      <select
+                        value={settings?.leveling?.levelUpChannelId || ''}
+                        onChange={(e) => handleInputChange('leveling.levelUpChannelId', e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%', padding: '10px 14px', fontSize: '0.88rem' }}
+                      >
+                        <option value="">Active Channel (where member chatted)</option>
+                        {(data?.channels?.filter(c => c.type === 0 || c.type === 5) || []).map(ch => (
+                          <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: '600' }}>
+                        Celebration Message Template <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({'{user}'}, {'{username}'}, {'{level}'}, {'{xp}'})</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={settings?.leveling?.levelUpMessage || '🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀'}
+                        onChange={(e) => handleInputChange('leveling.levelUpMessage', e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%', padding: '10px 14px', fontSize: '0.88rem' }}
+                        placeholder="🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={handleSaveLevelingSettings}
+                disabled={saving}
+                className="btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 22px' }}
+              >
+                <Save size={16} /> Save Automation Settings
+              </button>
+            </div>
+          </div>
+
           {/* Voice & Chat XP Gain Rates Panel (Full Width Grid) */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
@@ -2604,261 +2637,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         </div>
       )}
 
-      {/* TAB 4: YOUTUBE ANNOUNCEMENTS */}
-      {activeSubTab === 'youtube' && (
-        <div>
-          {loadingSettings ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <Loader size={30} className="spin" style={{ color: 'var(--primary)', marginBottom: '12px' }} />
-              <p style={{ color: 'var(--text-secondary)' }}>Loading YouTube configuration...</p>
-            </div>
-          ) : settings && (
-            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'rgba(255,255,255,0.01)' }}>
 
-                {/* Toggle header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>YouTube Upload Notifications</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Toggle the automated YouTube uploader checker system.</p>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={settings.youtube?.enabled || false}
-                      onChange={() => handleToggle('youtube.enabled')}
-                    />
-                    <span className="slider"></span>
-                  </label>
-                </div>
-
-                {settings.youtube?.enabled && (
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-                    {/* Account URL Row */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                        YouTube Channel URL or Handle <span style={{ color: 'var(--danger)' }}>*</span>
-                      </label>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <input
-                          type="text"
-                          value={settings.youtube?.channelUrl || ''}
-                          onChange={(e) => handleInputChange('youtube.channelUrl', e.target.value)}
-                          className="glass-input"
-                          placeholder="e.g. @smooth or https://youtube.com/channel/UC..."
-                        />
-                        <button
-                          type="button"
-                          onClick={handleResolveYoutubeChannel}
-                          disabled={resolvingChannel || !settings.youtube?.channelUrl}
-                          className="btn-primary"
-                          style={{ whiteSpace: 'nowrap', minWidth: '130px', justifyContent: 'center' }}
-                        >
-                          {resolvingChannel ? 'Connecting...' : 'Connect Channel'}
-                        </button>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-                        Enter YouTube custom handle (with @) or channel URL, then click Connect.
-                      </span>
-                    </div>
-
-                    {/* Resolved Channel details */}
-                    {settings.youtube?.channelId && (
-                      <div className="glass-panel" style={{
-                        padding: '12px 16px',
-                        backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                        borderColor: 'rgba(37, 99, 235, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '10px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
-                          <span style={{ fontSize: '0.88rem', fontWeight: '500' }}>
-                            Connected Channel: <strong style={{ color: 'white' }}>{settings.youtube?.channelName || 'YouTube Channel'}</strong>
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                          ID: {settings.youtube?.channelId}
-                        </span>
-                      </div>
-                    )}
-
-                    {resolveSuccessMsg && (
-                      <div style={{ color: 'var(--success)', fontSize: '0.85rem', fontWeight: '500' }}>
-                        {resolveSuccessMsg}
-                      </div>
-                    )}
-
-                    {/* Selectors row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-
-                      {/* Announcement Discord Channel */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                          Announcement Discord Channel <span style={{ color: 'var(--danger)' }}>*</span>
-                        </label>
-                        <select
-                          value={settings.youtube?.targetChannelId || ''}
-                          onChange={(e) => handleInputChange('youtube.targetChannelId', e.target.value)}
-                          className="glass-input"
-                        >
-                          <option value="">-- Select Discord Channel --</option>
-                          {(data?.channels || []).filter(c => c.type === 0).map(ch => (
-                            <option key={ch.id} value={ch.id}>#{ch.name}</option>
-                          ))}
-                        </select>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                          The channel where upload announcements will be published.
-                        </span>
-                      </div>
-
-                      {/* Ping Mention Role */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                          Mention Role (Ping)
-                        </label>
-                        <select
-                          value={settings.youtube?.pingRoleId || ''}
-                          onChange={(e) => handleInputChange('youtube.pingRoleId', e.target.value)}
-                          className="glass-input"
-                        >
-                          <option value="">-- None --</option>
-                          <option value="everyone">@everyone</option>
-                          <option value="here">@here</option>
-                          {serverRoles.map(role => (
-                            <option key={role.id} value={role.id} style={{ color: role.color }}>@{role.name}</option>
-                          ))}
-                        </select>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                          Optional role to mention/ping when announcing new videos.
-                        </span>
-                      </div>
-
-                    </div>
-
-                    {/* Announcement Template */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                        Video Upload Message Template
-                      </label>
-                      <textarea
-                        value={settings.youtube?.messageTemplate || ''}
-                        onChange={(e) => handleInputChange('youtube.messageTemplate', e.target.value)}
-                        className="glass-input"
-                        style={{ minHeight: '90px', fontFamily: 'monospace', fontSize: '0.9rem' }}
-                        placeholder="{url}"
-                      />
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-                        Available Placeholders: <code>{`{channel}`}</code> (YouTube Channel Name), <code>{`{title}`}</code> (Video Title), <code>{`{url}`}</code> (Video Link).
-                      </span>
-                    </div>
-
-                    {/* Live Discord Message Preview */}
-                    <div style={{ marginTop: '10px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-                        Live Discord Announcement Preview
-                      </label>
-
-                      <div style={{
-                        backgroundColor: '#313338',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-                        color: '#dbdee1',
-                        fontSize: '0.9375rem',
-                        lineHeight: '1.375rem',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                        width: '100%',
-                        maxWidth: '520px'
-                      }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                          <img
-                            src={data?.icon || 'https://cdn.discordapp.com/embed/avatars/0.png'}
-                            alt=""
-                            style={{ width: '36px', height: '36px', borderRadius: '50%' }}
-                          />
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: '600', color: '#f2f3f5', fontSize: '0.95rem' }}>
-                                SMOOTH MODE
-                              </span>
-                              <span style={{
-                                backgroundColor: '#5865F2',
-                                color: '#ffffff',
-                                fontSize: '0.625rem',
-                                fontWeight: '700',
-                                padding: '1px 4px',
-                                borderRadius: '3px',
-                                lineHeight: '0.8rem',
-                                height: '14px',
-                                display: 'inline-flex',
-                                alignItems: 'center'
-                              }}>
-                                BOT
-                              </span>
-                              <span style={{ fontSize: '0.72rem', color: '#949ba4' }}>
-                                Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div style={{ marginTop: '4px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                              {/* Ping preview */}
-                              {settings.youtube?.pingRoleId && settings.youtube?.pingRoleId !== 'none' && (
-                                <span style={{
-                                  backgroundColor: 'rgba(88, 101, 242, 0.3)',
-                                  color: '#c9cdfb',
-                                  padding: '0 4px',
-                                  borderRadius: '3px',
-                                  fontWeight: '500',
-                                  marginRight: '6px',
-                                  userSelect: 'none'
-                                }}>
-                                  {settings.youtube?.pingRoleId === 'everyone' ? '@everyone' :
-                                    settings.youtube?.pingRoleId === 'here' ? '@here' :
-                                      `@${serverRoles.find(r => r.id === settings.youtube?.pingRoleId)?.name || 'Role'}`}
-                                </span>
-                              )}
-
-                              {formatPreviewMessage(settings.youtube?.messageTemplate, settings.youtube?.channelName)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                )}
-
-                {/* Submit button footer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                  <button
-                    type="button"
-                    onClick={handleResetSettings}
-                    disabled={saving || !hasYoutubeChanges}
-                    className="btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-primary"
-                    style={{ gap: '10px', display: 'flex', alignItems: 'center', padding: '10px 20px' }}
-                  >
-                    <Save size={18} />
-                    {saving ? 'Saving...' : 'Save Settings'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
 
       {/* Timeout Modal Overlay */}
       {showTimeoutModal && timeoutTargetMember && (
