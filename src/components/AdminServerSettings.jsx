@@ -416,10 +416,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   };
 
   const handleResetSingleMemberXp = async (userId) => {
-    if (!window.confirm('Are you sure you want to reset XP and level data for this user?')) return;
+    if (!window.confirm('Are you sure you want to reset XP and level data for this user? This will also automatically remove all of their level roles in Discord.')) return;
     try {
       const res = await api.resetUserXp(guildId, userId);
-      setSuccessMsg(res.message || 'User XP reset successfully.');
+      setSuccessMsg(res.message || 'User XP and level data reset successfully, and all level roles removed.');
       fetchLevelData();
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -429,10 +429,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   };
 
   const handleResetServerLeaderboard = async () => {
-    if (!window.confirm('⚠️ CRITICAL WARNING: Are you sure you want to reset the entire XP leaderboard for this server? All member XP and levels will be deleted.')) return;
+    if (!window.confirm('⚠️ CRITICAL WARNING: Are you sure you want to reset the entire XP leaderboard for this server? All member XP and levels will be deleted, and all level roles will be removed from members in Discord.')) return;
     try {
       const res = await api.resetAllXp(guildId);
-      setSuccessMsg(res.message || 'Server XP leaderboard reset successfully.');
+      setSuccessMsg(res.message || 'Server XP leaderboard reset successfully, and all level roles removed.');
       fetchLevelData();
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -2620,7 +2620,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                               type="button"
                               onClick={() => handleResetSingleMemberXp(m.userId)}
                               style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
-                              title="Reset XP"
+                              title="Reset XP, Level & Roles"
                             >
                               <Trash2 size={14} />
                             </button>
