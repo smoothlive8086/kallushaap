@@ -125,6 +125,13 @@ export const api = {
       return await request(`/admin/payments/${id}`, { method: 'DELETE' });
     }
   },
+  resetPaymentEditLimit: async (id) => {
+    try {
+      return await request(`/admin/payments/${id}/reset-edit-limit`, { method: 'POST' });
+    } catch {
+      return await request(`/payments/admin/${id}/reset-edit-limit`, { method: 'POST' });
+    }
+  },
   getPackages: () => request('/payments/packages'),
   createPackage: (data) => request('/payments/admin/packages', {
     method: 'POST',

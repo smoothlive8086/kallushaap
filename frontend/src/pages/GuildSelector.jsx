@@ -80,6 +80,15 @@ export default function GuildSelector({ user, onLogout }) {
   };
 
   const handleEditRole = (role) => {
+    const isConfigured = Boolean(role.isRoleCreated || role.roleName);
+    const editCount = role.editCount || 0;
+    const maxEdits = role.maxEdits !== undefined ? role.maxEdits : 1;
+
+    if (isConfigured && editCount >= maxEdits) {
+      alert('You have already used your 1-time role edit. Custom roles can only be edited once from the dashboard.');
+      return;
+    }
+
     setEditingRole(role);
     setEditName(role.roleName || `${role.planName.replace(' Package', '')} VIP`);
     setEditColor(role.roleColor || '#a855f7');
@@ -91,18 +100,36 @@ export default function GuildSelector({ user, onLogout }) {
       alert('Role name cannot be empty.');
       return;
     }
+
+    const isCreating = !editingRole.roleName && !editingRole.isRoleCreated;
+
+    if (!isCreating) {
+      const editCount = editingRole.editCount || 0;
+      const maxEdits = editingRole.maxEdits !== undefined ? editingRole.maxEdits : 1;
+      if (editCount >= maxEdits) {
+        alert('You have already used your 1-time role edit.');
+        return;
+      }
+      const confirmed = window.confirm(
+        '⚠️ Notice: You can edit this custom role only 1 time from the dashboard. Once saved, no further edits will be allowed. Do you want to proceed?'
+      );
+      if (!confirmed) return;
+    }
+
     setUpdating(true);
     try {
-      if (!editingRole.roleName) {
-        await api.customizeRole(editingRole._id, {
+      if (isCreating) {
+        const res = await api.customizeRole(editingRole._id, {
           roleName: editName.trim(),
           roleColor: editColor
         });
+        alert(res?.message || `Custom role "${editName.trim()}" created successfully! You have 1 edit remaining.`);
       } else {
-        await api.updatePurchasedRole(editingRole._id, {
+        const res = await api.updatePurchasedRole(editingRole._id, {
           roleName: editName.trim(),
           roleColor: editColor
         });
+        alert(res?.message || `Custom role updated successfully! (1-time edit used)`);
       }
       setEditingRole(null);
       fetchMyRoles();
@@ -291,7 +318,12 @@ export default function GuildSelector({ user, onLogout }) {
                 const isPendingVerification = role.paymentStatus === 'PENDING';
                 const isRejected = role.paymentStatus === 'REJECTED';
                 const isVerified = role.paymentStatus === 'VERIFIED';
-                const hasRoleConfigured = isVerified && role.roleName;
+                const hasRoleConfigured = Boolean(role.isRoleCreated || role.roleName);
+                const editCount = role.editCount || 0;
+                const maxEdits = role.maxEdits !== undefined ? role.maxEdits : 1;
+                const editsRemaining = Math.max(0, maxEdits - editCount);
+                const canEdit = isVerified && hasRoleConfigured && editsRemaining > 0;
+                const editLimitReached = isVerified && hasRoleConfigured && editsRemaining === 0;
 
                 return (
                   <div
@@ -307,7 +339,7 @@ export default function GuildSelector({ user, onLogout }) {
                       gap: '14px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {hasRoleConfigured ? (
                           <>
@@ -316,39 +348,96 @@ export default function GuildSelector({ user, onLogout }) {
                               height: '18px',
                               borderRadius: '50%',
                               backgroundColor: role.roleColor,
-                              boxShadow: `0 0 8px ${role.roleColor}88`
+                              boxShadow: `0 0 8px ${role.roleColor}88`,
+                              flexShrink: 0
                             }} />
-                            <strong style={{ fontSize: '1.05rem', color: role.roleColor }}>
-                              {role.roleName}
-                            </strong>
+                            <div>
+                              <strong style={{ fontSize: '1.05rem', color: role.roleColor }}>
+                                {role.roleName}
+                              </strong>
+                              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                {role.planName}
+                              </div>
+                            </div>
                           </>
                         ) : (
-                          <strong style={{ fontSize: '1.05rem', color: '#111827' }}>
-                            {role.planName}
-                          </strong>
+                          <div>
+                            <strong style={{ fontSize: '1.05rem', color: '#111827' }}>
+                              {role.planName}
+                            </strong>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                              Custom Role not created yet
+                            </div>
+                          </div>
                         )}
                       </div>
 
+                      {/* Action Button: Create Role OR Edit Role (1 time only) */}
                       {isVerified && (
-                        <button
-                          onClick={() => handleEditRole(role)}
-                          style={{
-                            backgroundColor: hasRoleConfigured ? '#ffffff' : '#15803d',
-                            color: hasRoleConfigured ? '#374151' : '#ffffff',
-                            border: hasRoleConfigured ? '1px solid #d1d5db' : 'none',
-                            borderRadius: '8px',
-                            padding: '6px 14px',
-                            fontSize: '0.82rem',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            boxShadow: hasRoleConfigured ? 'none' : '0 2px 8px rgba(21, 128, 61, 0.25)'
-                          }}
-                        >
-                          <Palette size={14} /> {hasRoleConfigured ? 'Edit Role' : 'Set Custom Role & Colour'}
-                        </button>
+                        <div>
+                          {!hasRoleConfigured ? (
+                            <button
+                              onClick={() => handleEditRole(role)}
+                              style={{
+                                backgroundColor: '#15803d',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 16px',
+                                fontSize: '0.82rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 2px 8px rgba(21, 128, 61, 0.25)',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Sparkles size={14} /> Create Custom Role (1-Time)
+                            </button>
+                          ) : canEdit ? (
+                            <button
+                              onClick={() => handleEditRole(role)}
+                              style={{
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '8px',
+                                padding: '7px 14px',
+                                fontSize: '0.82rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Palette size={14} /> Edit Role (1 Edit Left)
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              title="You have already used your 1-time custom role edit."
+                              style={{
+                                backgroundColor: '#f3f4f6',
+                                color: '#9ca3af',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                                padding: '7px 14px',
+                                fontSize: '0.82rem',
+                                fontWeight: '700',
+                                cursor: 'not-allowed',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <ShieldCheck size={14} /> Role Edited (1/1 Used)
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -356,6 +445,34 @@ export default function GuildSelector({ user, onLogout }) {
                       <div>Server: <strong>{role.guildName}</strong></div>
                       <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>Ref: {role.paymentId}</div>
                     </div>
+
+                    {/* Role & Edit Status Indicators */}
+                    {hasRoleConfigured && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: editLimitReached ? '#f8fafc' : '#fffbeb',
+                        border: `1px solid ${editLimitReached ? '#e2e8f0' : '#fef3c7'}`,
+                        fontSize: '0.78rem'
+                      }}>
+                        <span style={{ color: '#475569', fontWeight: '600' }}>
+                          Dashboard Edit Allowance:
+                        </span>
+                        <span style={{
+                          fontWeight: '800',
+                          color: editLimitReached ? '#64748b' : '#b45309',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {editLimitReached ? '🔒 0 / 1 edits left (Limit reached)' : '✏️ 1 / 1 edit remaining'}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Status Banner */}
                     {isPendingVerification && (
@@ -389,14 +506,18 @@ export default function GuildSelector({ user, onLogout }) {
 
                     {isVerified && !hasRoleConfigured && (
                       <div style={{
-                        padding: '8px 12px',
+                        padding: '10px 14px',
                         borderRadius: '8px',
                         backgroundColor: '#dcfce7',
                         color: '#15803d',
-                        fontSize: '0.8rem',
-                        fontWeight: '600'
+                        fontSize: '0.82rem',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
                       }}>
-                        ✅ Payment Verified by Admin! Click "Set Custom Role & Colour" above.
+                        <Sparkles size={16} />
+                        <span>Payment verified! Click <strong>"Create Custom Role (1-Time)"</strong> above to set your custom role & colour on your own.</span>
                       </div>
                     )}
 
@@ -605,11 +726,36 @@ export default function GuildSelector({ user, onLogout }) {
             border: '1px solid rgba(0,0,0,0.08)'
           }}>
             <h3 style={{ margin: '0 0 4px 0', fontSize: '1.3rem', fontWeight: '800', color: '#111827' }}>
-              {editingRole.roleName ? 'Edit Custom Role' : 'Set Custom Role & Colour'}
+              {!editingRole.roleName && !editingRole.isRoleCreated ? '✨ Create Your Custom Role' : '✏️ Edit Custom Role (1-Time Only)'}
             </h3>
-            <p style={{ margin: '0 0 18px 0', fontSize: '0.85rem', color: '#6b7280' }}>
-              Configure your role name and color for <strong>{editingRole.guildName}</strong>
+            <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: '#6b7280' }}>
+              {!editingRole.roleName && !editingRole.isRoleCreated
+                ? <>Configure your custom role for <strong>{editingRole.guildName}</strong>. You can create your role on your own (1 time per package).</>
+                : <>Update your role name or color for <strong>{editingRole.guildName}</strong>.</>
+              }
             </p>
+
+            {/* Warning Banner if editing */}
+            {(editingRole.roleName || editingRole.isRoleCreated) && (
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                fontSize: '0.82rem',
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                lineHeight: '1.4'
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+                <div>
+                  <strong>Important 1-Time Edit Notice:</strong> You are allowed to edit your custom role only <strong>1 time</strong> from the dashboard. Once saved, no further edits are possible!
+                </div>
+              </div>
+            )}
 
             {/* Live Discord Badge Preview */}
             <div style={{
@@ -741,7 +887,12 @@ export default function GuildSelector({ user, onLogout }) {
                   boxShadow: '0 4px 14px rgba(21, 128, 61, 0.3)'
                 }}
               >
-                {updating ? 'Saving...' : 'Save & Issue Role'}
+                {updating
+                  ? 'Saving...'
+                  : (!editingRole.roleName && !editingRole.isRoleCreated)
+                    ? '✨ Create & Issue Role'
+                    : '💾 Save Final Edit (1/1)'
+                }
               </button>
             </div>
           </div>

@@ -133,6 +133,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
       if (sData) {
         if (!sData.leveling) sData.leveling = {};
+        if (sData.leveling.removePreviousRoles === undefined) sData.leveling.removePreviousRoles = true;
+        if (sData.leveling.notifyLevelUp === undefined) sData.leveling.notifyLevelUp = true;
+        if (sData.leveling.levelUpChannelId === undefined) sData.leveling.levelUpChannelId = '';
+        if (!sData.leveling.levelUpMessage) sData.leveling.levelUpMessage = '🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀';
         if (!sData.leveling.levelRoles || sData.leveling.levelRoles.length === 0) {
           sData.leveling.levelRoles = JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
         } else {
@@ -412,10 +416,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   };
 
   const handleResetSingleMemberXp = async (userId) => {
-    if (!window.confirm('Are you sure you want to reset XP and level data for this user?')) return;
+    if (!window.confirm('Are you sure you want to reset XP and level data for this user? This will also automatically remove all of their level roles in Discord.')) return;
     try {
       const res = await api.resetUserXp(guildId, userId);
-      setSuccessMsg(res.message || 'User XP reset successfully.');
+      setSuccessMsg(res.message || 'User XP and level data reset successfully, and all level roles removed.');
       fetchLevelData();
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -425,10 +429,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   };
 
   const handleResetServerLeaderboard = async () => {
-    if (!window.confirm('⚠️ CRITICAL WARNING: Are you sure you want to reset the entire XP leaderboard for this server? All member XP and levels will be deleted.')) return;
+    if (!window.confirm('⚠️ CRITICAL WARNING: Are you sure you want to reset the entire XP leaderboard for this server? All member XP and levels will be deleted, and all level roles will be removed from members in Discord.')) return;
     try {
       const res = await api.resetAllXp(guildId);
-      setSuccessMsg(res.message || 'Server XP leaderboard reset successfully.');
+      setSuccessMsg(res.message || 'Server XP leaderboard reset successfully, and all level roles removed.');
       fetchLevelData();
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -2262,6 +2266,157 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             </div>
           </div>
 
+          {/* Level Role Automation & Upgrades Panel */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={22} color="#10b981" />
+                  Level-Up Role Rewards & Announcement Automation
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                  Configure automatic role promotion, role replacement on level-up, and chat celebration messages.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Toggle: Remove Older Level Roles */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                gap: '20px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ flex: '1 1 300px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '0.98rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span>Automatically Remove Older Level Roles</span>
+                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', fontWeight: '800', letterSpacing: '0.5px' }}>
+                      RECOMMENDED
+                    </span>
+                  </div>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: '1.5' }}>
+                    When members gain XP and level up, the bot automatically removes their previous/older level roles and grants the new level role (e.g., reaching Level 2 removes Level 1 and gives Level 2). When turned off, level roles stack.
+                  </p>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings?.leveling?.removePreviousRoles !== false}
+                    onChange={() => handleToggle('leveling.removePreviousRoles')}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: settings?.leveling?.removePreviousRoles !== false ? '#10b981' : '#334155',
+                    transition: '.3s', borderRadius: '34px',
+                    boxShadow: settings?.leveling?.removePreviousRoles !== false ? '0 0 12px rgba(16, 185, 129, 0.4)' : 'none'
+                  }}>
+                    <span style={{
+                      position: 'absolute', content: '""', height: '20px', width: '20px',
+                      left: settings?.leveling?.removePreviousRoles !== false ? '26px' : '4px',
+                      bottom: '4px', backgroundColor: '#ffffff', transition: '.3s', borderRadius: '50%'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              {/* Toggle & Config: Level-Up Announcements */}
+              <div style={{
+                padding: '18px 20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '14px' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.98rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MessageSquare size={18} color="#38bdf8" />
+                      <span>Send Level-Up Announcement in Chat</span>
+                    </div>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      Congratulate members when they earn enough XP to advance to a higher level.
+                    </p>
+                  </div>
+
+                  <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings?.leveling?.notifyLevelUp !== false}
+                      onChange={() => handleToggle('leveling.notifyLevelUp')}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: settings?.leveling?.notifyLevelUp !== false ? '#38bdf8' : '#334155',
+                      transition: '.3s', borderRadius: '34px',
+                      boxShadow: settings?.leveling?.notifyLevelUp !== false ? '0 0 12px rgba(56, 189, 248, 0.4)' : 'none'
+                    }}>
+                      <span style={{
+                        position: 'absolute', content: '""', height: '20px', width: '20px',
+                        left: settings?.leveling?.notifyLevelUp !== false ? '26px' : '4px',
+                        bottom: '4px', backgroundColor: '#ffffff', transition: '.3s', borderRadius: '50%'
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {settings?.leveling?.notifyLevelUp !== false && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: '600' }}>
+                        Announcement Channel
+                      </label>
+                      <select
+                        value={settings?.leveling?.levelUpChannelId || ''}
+                        onChange={(e) => handleInputChange('leveling.levelUpChannelId', e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%', padding: '10px 14px', fontSize: '0.88rem' }}
+                      >
+                        <option value="">Active Channel (where member chatted)</option>
+                        {(data?.channels?.filter(c => c.type === 0 || c.type === 5) || []).map(ch => (
+                          <option key={ch.id} value={ch.id}>#{ch.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: '600' }}>
+                        Celebration Message Template <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({'{user}'}, {'{username}'}, {'{level}'}, {'{xp}'})</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={settings?.leveling?.levelUpMessage || '🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀'}
+                        onChange={(e) => handleInputChange('leveling.levelUpMessage', e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%', padding: '10px 14px', fontSize: '0.88rem' }}
+                        placeholder="🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={handleSaveLevelingSettings}
+                disabled={saving}
+                className="btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 22px' }}
+              >
+                <Save size={16} /> Save Automation Settings
+              </button>
+            </div>
+          </div>
+
           {/* Voice & Chat XP Gain Rates Panel (Full Width Grid) */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
@@ -2465,7 +2620,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                               type="button"
                               onClick={() => handleResetSingleMemberXp(m.userId)}
                               style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
-                              title="Reset XP"
+                              title="Reset XP, Level & Roles"
                             >
                               <Trash2 size={14} />
                             </button>
