@@ -103,24 +103,6 @@ export default function AdminPackageModal({ onClose }) {
     }
   };
 
-  const handleResetEditLimit = async (id, username) => {
-    if (!window.confirm(`Reset 1-time custom role edit limit for @${username}?\n\nThis will allow the user to edit their custom role 1 more time from their dashboard.`)) {
-      return;
-    }
-    setProcessingId(id);
-    setActionSuccess('');
-    try {
-      await api.resetPaymentEditLimit(id);
-      setActionSuccess(`Edit limit reset for @${username}! User can now edit their custom role 1 time.`);
-      setTimeout(() => setActionSuccess(''), 4000);
-      fetchPayments();
-    } catch (err) {
-      alert('Failed to reset edit limit: ' + (err.message || 'Unknown error'));
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
   const handleDelete = async (id, username) => {
     if (!window.confirm(`Are you sure you want to DELETE the purchase order for @${username}?\n\nThis will automatically revoke and remove all package features and Discord roles assigned to this user.`)) {
       return;
@@ -566,55 +548,19 @@ export default function AdminPackageModal({ onClose }) {
 
                     {/* Custom Role Preview (If set by customer) */}
                     {p.roleName && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#64748b', fontWeight: '600' }}>Custom Role:</span>
-                          <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #e2e8f0'
-                          }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.roleColor || '#a855f7' }} />
-                            <strong style={{ color: p.roleColor || '#a855f7' }}>{p.roleName}</strong>
-                          </div>
-                        </div>
-
-                        {/* Edit Count Allowance & Reset Action */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            backgroundColor: (p.editCount || 0) >= (p.maxEdits || 1) ? '#fee2e2' : '#fef3c7',
-                            color: (p.editCount || 0) >= (p.maxEdits || 1) ? '#dc2626' : '#b45309'
-                          }}>
-                            Edits: {p.editCount || 0}/{p.maxEdits || 1} {(p.editCount || 0) >= (p.maxEdits || 1) ? '(Used)' : '(1 Left)'}
-                          </span>
-
-                          {(p.editCount || 0) > 0 && (
-                            <button
-                              disabled={isItemProcessing}
-                              onClick={() => handleResetEditLimit(p._id, p.username)}
-                              style={{
-                                fontSize: '0.75rem',
-                                padding: '3px 8px',
-                                borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                backgroundColor: '#ffffff',
-                                color: '#475569',
-                                cursor: isItemProcessing ? 'not-allowed' : 'pointer',
-                                fontWeight: '600'
-                              }}
-                              title="Reset edit count to 0 to grant user 1 more edit"
-                            >
-                              Reset Edit Limit
-                            </button>
-                          )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem' }}>
+                        <span style={{ color: '#64748b', fontWeight: '600' }}>Custom Role:</span>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.roleColor || '#a855f7' }} />
+                          <strong style={{ color: p.roleColor || '#a855f7' }}>{p.roleName}</strong>
                         </div>
                       </div>
                     )}

@@ -247,22 +247,6 @@ export default function AdminSelector({ user, onLogout }) {
     }
   };
 
-  const handleResetEditLimit = async (id, username) => {
-    if (!window.confirm(`Reset 1-time custom role edit limit for @${username}?\n\nThis will allow the user to edit their custom role 1 more time from their dashboard.`)) return;
-    setProcessingId(id);
-    setActionSuccess('');
-    try {
-      await api.resetPaymentEditLimit(id);
-      setActionSuccess(`Edit limit reset for @${username}! User can now edit their custom role 1 time.`);
-      setTimeout(() => setActionSuccess(''), 4000);
-      fetchAdminPayments();
-    } catch (err) {
-      alert('Failed to reset edit limit: ' + (err.message || 'Unknown error'));
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
   // --- PACKAGE MANAGEMENT HANDLERS ---
   const handleOpenAddPackage = () => {
     setEditingPackageId(null);
@@ -1025,61 +1009,23 @@ export default function AdminSelector({ user, onLogout }) {
                             </div>
 
                             {/* Configured Custom Role Preview */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: '#94a3b8', fontWeight: '600' }}>Configured Role:</span>
-                                {p.roleName ? (
-                                  <div style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '4px 10px',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#1e293b',
-                                    border: '1px solid #334155'
-                                  }}>
-                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.roleColor || '#a855f7' }} />
-                                    <strong style={{ color: p.roleColor || '#a855f7' }}>{p.roleName}</strong>
-                                  </div>
-                                ) : (
-                                  <span style={{ color: '#64748b', fontStyle: 'italic' }}>(Awaiting user creation after verification)</span>
-                                )}
-                              </div>
-
-                              {p.roleName && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: '700',
-                                    padding: '3px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: (p.editCount || 0) >= (p.maxEdits || 1) ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                    color: (p.editCount || 0) >= (p.maxEdits || 1) ? '#f87171' : '#fbbf24',
-                                    border: `1px solid ${(p.editCount || 0) >= (p.maxEdits || 1) ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
-                                  }}>
-                                    Edits: {p.editCount || 0}/{p.maxEdits || 1} {(p.editCount || 0) >= (p.maxEdits || 1) ? '(Used)' : '(1 Left)'}
-                                  </span>
-
-                                  {(p.editCount || 0) > 0 && (
-                                    <button
-                                      disabled={isItemProcessing}
-                                      onClick={() => handleResetEditLimit(p._id, p.username)}
-                                      style={{
-                                        fontSize: '0.75rem',
-                                        padding: '3px 8px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #475569',
-                                        backgroundColor: '#1e293b',
-                                        color: '#cbd5e1',
-                                        cursor: isItemProcessing ? 'not-allowed' : 'pointer',
-                                        fontWeight: '600'
-                                      }}
-                                      title="Reset edit count to 0 so user can edit their custom role 1 more time"
-                                    >
-                                      Reset Edit Limit
-                                    </button>
-                                  )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem' }}>
+                              <span style={{ color: '#94a3b8', fontWeight: '600' }}>Configured Role:</span>
+                              {p.roleName ? (
+                                <div style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#1e293b',
+                                  border: '1px solid #334155'
+                                }}>
+                                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: p.roleColor || '#a855f7' }} />
+                                  <strong style={{ color: p.roleColor || '#a855f7' }}>{p.roleName}</strong>
                                 </div>
+                              ) : (
+                                <span style={{ color: '#64748b', fontStyle: 'italic' }}>(Awaiting user customization after verification)</span>
                               )}
                             </div>
 
