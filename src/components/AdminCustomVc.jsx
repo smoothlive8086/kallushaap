@@ -565,16 +565,50 @@ export default function AdminCustomVc({ guildId, onNavigateToServer }) {
             <div style={{
               backgroundColor: '#2b2d31',
               borderRadius: '8px',
-              padding: '16px',
+              padding: '16px 18px',
               borderLeft: '4px solid #5865F2',
               marginBottom: '16px'
             }}>
-              <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#ffffff' }}>
-                Voice Manager
+              <h4 style={{ margin: 0, fontSize: '1.08rem', fontWeight: '700', color: '#ffffff' }}>
+                🔊 Voice Manager
               </h4>
-              <p style={{ margin: '6px 0 0 0', fontSize: '0.88rem', color: '#dbdee1' }}>
-                Control your private voice channel settings below.
+              <p style={{ margin: '6px 0 10px 0', fontSize: '0.85rem', color: '#dbdee1' }}>
+                Control your private voice channel settings below.<br />
+                Click any button while connected to your custom voice channel.
               </p>
+
+              <div style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', letterSpacing: '1px', marginBottom: '10px' }}>
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
+                <div>
+                  <div style={{ color: '#ffffff', fontWeight: '700', marginBottom: '3px' }}>🔒 Access & Privacy</div>
+                  <div style={{ borderLeft: '3px solid #5865F2', paddingLeft: '8px', color: '#b5bac1', lineHeight: '1.5' }}>
+                    🔒 <strong>Lock</strong> • 🔓 <strong>Unlock</strong> • 🕶️ <strong>Hide</strong> • 👁️ <strong>Unhide</strong><br />
+                    🤝 <strong>Permit</strong> • 📩 <strong>Invite</strong> • ⛔ <strong>Ban</strong> • 🛡️ <strong>Unban</strong>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ color: '#ffffff', fontWeight: '700', marginBottom: '3px' }}>🔊 Audio & Moderation</div>
+                  <div style={{ borderLeft: '3px solid #5865F2', paddingLeft: '8px', color: '#b5bac1', lineHeight: '1.5' }}>
+                    🔇 <strong>Mute</strong> • 🎶 <strong>Unmute</strong> • 🙈 <strong>Deafen</strong> • 👂 <strong>Undeaf</strong> • 🔄 <strong>Move</strong><br />
+                    👤 <strong>Limit</strong> • ✏️ <strong>Rename</strong> • 📶 <strong>Bitrate</strong> • 🌍 <strong>Region</strong>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ color: '#ffffff', fontWeight: '700', marginBottom: '3px' }}>⚙️ Channel Management</div>
+                  <div style={{ borderLeft: '3px solid #5865F2', paddingLeft: '8px', color: '#b5bac1', lineHeight: '1.5' }}>
+                    📋 <strong>Template</strong> • 💬 <strong>Chat</strong> • ⏳ <strong>Waiting</strong> • 👑 <strong>Claim</strong> • ⏩ <strong>Transfer</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', letterSpacing: '1px', marginTop: '10px' }}>
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              </div>
             </div>
 
             {/* Row 1: Lock, Unlock, Hide, Unhide */}
