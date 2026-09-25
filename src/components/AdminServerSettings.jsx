@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../utils/api';
-import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare } from 'lucide-react';
+import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare, ShieldAlert } from 'lucide-react';
 import { io } from 'socket.io-client';
 import AdminCustomVc from './AdminCustomVc';
+import AdminServerControl from './AdminServerControl';
 
 
 
@@ -1139,6 +1140,28 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         >
           <Volume2 size={16} color="#818cf8" />
           Custom VC
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubTabClick('server-control')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: activeSubTab === 'server-control' ? '#ffffff' : 'var(--text-secondary)',
+            fontSize: '0.95rem',
+            fontWeight: activeSubTab === 'server-control' ? '700' : '400',
+            cursor: 'pointer',
+            padding: '10px 16px',
+            borderBottom: activeSubTab === 'server-control' ? '2px solid #ef4444' : '2px solid transparent',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Outfit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <ShieldAlert size={16} color="#ef4444" />
+          Server Control
         </button>
       </div>
 
@@ -3243,6 +3266,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
 
       {activeSubTab === 'custom-vc' && (
         <AdminCustomVc guildId={guildId} />
+      )}
+
+      {activeSubTab === 'server-control' && (
+        <AdminServerControl guildId={guildId} />
       )}
 
       <style dangerouslySetInnerHTML={{

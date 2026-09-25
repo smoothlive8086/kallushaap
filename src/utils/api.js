@@ -260,7 +260,44 @@ export const api = {
   performCustomVcAction: (guildId, channelId, action, params = {}) => request(`/admin/guilds/${guildId}/custom-vc/channels/${channelId}/action`, {
     method: 'POST',
     body: JSON.stringify({ action, ...params })
-  })
+  }),
+
+  // Server Control Moderation Endpoints
+  getServerControlDetails: (guildId) => request(`/admin/guilds/${guildId}/server-control`),
+  saveServerControlSettings: (guildId, data) => request(`/admin/guilds/${guildId}/server-control/settings`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  setupServerControlBlacklist: (guildId, data) => request(`/admin/guilds/${guildId}/server-control/blacklist-setup`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  authorizeServerControlUser: (guildId, data) => request(`/admin/guilds/${guildId}/server-control/authorize-user`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  revokeServerControlUser: (guildId, userId) => request(`/admin/guilds/${guildId}/server-control/authorize-user/${userId}`, {
+    method: 'DELETE'
+  }),
+  authorizeServerControlRole: (guildId, data) => request(`/admin/guilds/${guildId}/server-control/authorize-role`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  revokeServerControlRole: (guildId, roleId) => request(`/admin/guilds/${guildId}/server-control/authorize-role/${roleId}`, {
+    method: 'DELETE'
+  }),
+  sendServerControlTestLog: (guildId, channelId) => request(`/admin/guilds/${guildId}/server-control/test-log`, {
+    method: 'POST',
+    body: JSON.stringify({ channelId })
+  }),
+  executeServerControlAction: (guildId, data) => request(`/admin/guilds/${guildId}/server-control/execute`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getServerControlLogs: (guildId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/admin/guilds/${guildId}/server-control/logs?${query}`);
+  }
 };
 
 
