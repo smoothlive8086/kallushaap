@@ -1,10 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../utils/api';
-import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare } from 'lucide-react';
+import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare, Terminal, Sliders, RefreshCw, Play, CheckCircle2, Sparkles } from 'lucide-react';
 import { io } from 'socket.io-client';
 
-
-
+const DEFAULT_COMMANDS_CONFIG = {
+  customPrefix: '?',
+  xpCommand: '?xp',
+  xpAliases: ['?rank', '!xp', 's?xp'],
+  xpEnabled: true,
+  userStatusCommand: 's?u',
+  userStatusAliases: ['s?user', '?user', '!user'],
+  userStatusEnabled: true,
+  serverStatusCommand: 's?s',
+  serverStatusAliases: ['s?server', '?server', '?serverinfo', '!server', 's?status'],
+  serverStatusEnabled: true,
+  shipCommand: 'ship',
+  shipAliases: ['?ship', '!ship'],
+  shipEnabled: true
+};
 
 const DEFAULT_LEVEL_CONFIGS = [
   { level: 1, xpRequired: 100, roleName: 'Level 1', roleColor: '#3b82f6', roleId: '' },
@@ -121,6 +134,13 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   const [settings, setSettings] = useState(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
 
+  // Command customizer state
+  const [testCommandInput, setTestCommandInput] = useState('?xp');
+  const [xpAliasesStr, setXpAliasesStr] = useState('?rank, !xp, s?xp');
+  const [userStatusAliasesStr, setUserStatusAliasesStr] = useState('s?user, ?user, !user');
+  const [serverStatusAliasesStr, setServerStatusAliasesStr] = useState('s?server, ?server, ?serverinfo, !server, s?status');
+  const [shipAliasesStr, setShipAliasesStr] = useState('?ship, !ship');
+
   const fetchLevelData = async () => {
     try {
       setLoadingLevelData(true);
@@ -147,6 +167,17 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               : Math.round(Math.pow(((r.level || 1) - 1) / 0.1, 2)) || 100
           }));
         }
+
+        // Initialize Commands config if missing
+        if (!sData.commands) {
+          sData.commands = JSON.parse(JSON.stringify(DEFAULT_COMMANDS_CONFIG));
+        } else {
+          sData.commands = {
+            ...DEFAULT_COMMANDS_CONFIG,
+            ...sData.commands
+          };
+        }
+
         setSettings(sData);
         setSavedSettings(JSON.parse(JSON.stringify(sData)));
       }
@@ -162,10 +193,171 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   };
 
   useEffect(() => {
-    if (activeSubTab === 'levels') {
+    if (activeSubTab === 'levels' || activeSubTab === 'commands') {
       fetchLevelData();
     }
   }, [activeSubTab, guildId, levelSearchQuery]);
+
+  // Keep alias strings synchronized with settings
+  useEffect(() => {
+    if (settings?.commands) {
+      setXpAliasesStr((settings.commands.xpAliases || DEFAULT_COMMANDS_CONFIG.xpAliases).join(', '));
+      setUserStatusAliasesStr((settings.commands.userStatusAliases || DEFAULT_COMMANDS_CONFIG.userStatusAliases).join(', '));
+      setServerStatusAliasesStr((settings.commands.serverStatusAliases || DEFAULT_COMMANDS_CONFIG.serverStatusAliases).join(', '));
+      setShipAliasesStr((settings.commands.shipAliases || DEFAULT_COMMANDS_CONFIG.shipAliases).join(', '));
+    }
+  }, [settings?.commands]);
+
+  const handlePrimaryCommandChange = (field, val) => {
+    setSettings(prev => ({
+      ...prev,
+      commands: {
+        ...(prev?.commands || DEFAULT_COMMANDS_CONFIG),
+        [field]: val
+      }
+    }));
+  };
+
+  const handleAliasChange = (field, strVal) => {
+    if (field === 'xpAliases') setXpAliasesStr(strVal);
+    if (field === 'userStatusAliases') setUserStatusAliasesStr(strVal);
+    if (field === 'serverStatusAliases') setServerStatusAliasesStr(strVal);
+    if (field === 'shipAliases') setShipAliasesStr(strVal);
+
+    const arr = strVal.split(',').map(s => s.trim()).filter(Boolean);
+    setSettings(prev => ({
+      ...prev,
+      commands: {
+        ...(prev?.commands || DEFAULT_COMMANDS_CONFIG),
+        [field]: arr
+      }
+    }));
+  };
+
+  const handleToggleCommand = (field) => {
+    setSettings(prev => ({
+      ...prev,
+      commands: {
+        ...(prev?.commands || DEFAULT_COMMANDS_CONFIG),
+        [field]: !(prev?.commands?.[field] ?? true)
+      }
+    }));
+  };
+
+  const handleSaveCommands = async () => {
+    setSaving(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    try {
+      const updated = await api.saveSettings(guildId, settings);
+      setSettings(updated);
+      setSavedSettings(JSON.parse(JSON.stringify(updated)));
+      setSuccessMsg('⚡ Bot Commands & Chat Triggers saved successfully! Discord bot will respond to your updated commands instantly.');
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error('Failed to save commands:', err);
+      setErrorMsg('Failed to save bot commands: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetCommandsToDefaults = () => {
+    if (!window.confirm('Reset all bot command triggers, prefixes, and aliases back to standard defaults (?xp, s?u, s?s, ship)?')) return;
+    const defaults = JSON.parse(JSON.stringify(DEFAULT_COMMANDS_CONFIG));
+    setSettings(prev => ({
+      ...prev,
+      commands: defaults
+    }));
+    setXpAliasesStr(defaults.xpAliases.join(', '));
+    setUserStatusAliasesStr(defaults.userStatusAliases.join(', '));
+    setServerStatusAliasesStr(defaults.serverStatusAliases.join(', '));
+    setShipAliasesStr(defaults.shipAliases.join(', '));
+  };
+
+  const testCommandMatch = () => {
+    const text = (testCommandInput || '').trim();
+    if (!text) return { matched: false, reason: 'Type a command in the input above (e.g. ?xp or s?u or s?s) to test.' };
+
+    const cmdConfig = settings?.commands || DEFAULT_COMMANDS_CONFIG;
+
+    const checkMatch = (primary, aliases = []) => {
+      const list = [primary, ...(aliases || [])].filter(Boolean);
+      for (const raw of list) {
+        const trg = raw.trim();
+        if (!trg) continue;
+        const esc = trg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const reg = new RegExp(`^${esc}(?:\\s+.*)?$`, 'i');
+        if (reg.test(text)) return { matched: true, trigger: trg };
+      }
+      return { matched: false, trigger: null };
+    };
+
+    // 1. Server Status
+    if (cmdConfig.serverStatusEnabled) {
+      const res = checkMatch(cmdConfig.serverStatusCommand, cmdConfig.serverStatusAliases);
+      if (res.matched) {
+        return {
+          matched: true,
+          badgeColor: '#6366f1',
+          commandTitle: 'Full Server Status & Stats Command',
+          matchedTrigger: res.trigger,
+          description: 'Responds with full server statistics embed: member counts (humans vs bots), channels, boost level, tracked XP totals, and bot latency.',
+          previewType: 'embed'
+        };
+      }
+    }
+
+    // 2. User Activity (Statbot)
+    if (cmdConfig.userStatusEnabled) {
+      const res = checkMatch(cmdConfig.userStatusCommand, cmdConfig.userStatusAliases);
+      if (res.matched) {
+        return {
+          matched: true,
+          badgeColor: '#10b981',
+          commandTitle: 'User Activity & Statbot Stats Command',
+          matchedTrigger: res.trigger,
+          description: 'Responds with 14-day voice activity & message wave charts generated on Canvas image card.',
+          previewType: 'image'
+        };
+      }
+    }
+
+    // 3. Knowing XP
+    if (cmdConfig.xpEnabled) {
+      const res = checkMatch(cmdConfig.xpCommand, cmdConfig.xpAliases);
+      if (res.matched) {
+        return {
+          matched: true,
+          badgeColor: '#eab308',
+          commandTitle: 'XP & Level Rank Command',
+          matchedTrigger: res.trigger,
+          description: 'Responds with member XP card image showing level, rank, voice hours, and XP progression bar.',
+          previewType: 'image'
+        };
+      }
+    }
+
+    // 4. Ship
+    if (cmdConfig.shipEnabled) {
+      const res = checkMatch(cmdConfig.shipCommand, cmdConfig.shipAliases);
+      if (res.matched) {
+        return {
+          matched: true,
+          badgeColor: '#f43f5e',
+          commandTitle: 'Ship Compatibility Command',
+          matchedTrigger: res.trigger,
+          description: 'Responds with love meter score and compatibility card between two members.',
+          previewType: 'card'
+        };
+      }
+    }
+
+    return {
+      matched: false,
+      reason: `No enabled bot command matches "${text}". Check your trigger inputs or toggle command to enabled.`
+    };
+  };
 
   const handleUpdateLevelRole = (index, field, value) => {
     setSettings(prev => {
@@ -1116,6 +1308,28 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         >
           <Award size={16} color="#eab308" />
           XP & Member Levels
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubTabClick('commands')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: activeSubTab === 'commands' ? '#ffffff' : 'var(--text-secondary)',
+            fontSize: '0.95rem',
+            fontWeight: activeSubTab === 'commands' ? '700' : '400',
+            cursor: 'pointer',
+            padding: '10px 16px',
+            borderBottom: activeSubTab === 'commands' ? '2px solid #818cf8' : '2px solid transparent',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Outfit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Terminal size={16} color="#818cf8" />
+          Bot Commands (?xp, s?u, s?s)
         </button>
       </div>
 
@@ -2632,6 +2846,921 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                 </table>
               </div>
             )}
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB 4: BOT COMMANDS CUSTOMIZATION (?xp, s?u, s?s) */}
+      {activeSubTab === 'commands' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* Top Banner */}
+          <div className="glass-panel" style={{
+            padding: '24px',
+            backgroundColor: 'rgba(99, 102, 241, 0.05)',
+            borderColor: 'rgba(99, 102, 241, 0.25)',
+            borderRadius: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+                  <Terminal size={24} color="#818cf8" />
+                  Bot Commands & Chat Triggers
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#cbd5e1', margin: '6px 0 0 0', lineHeight: '1.5' }}>
+                  Customize the chat commands used by server members. Edit command names, add alternative aliases (e.g. <code>?xp</code>, <code>s?u</code>, <code>s?s</code>, <code>?server</code>), or toggle commands on/off.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleResetCommandsToDefaults}
+                  className="btn-secondary"
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: '700',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <RefreshCw size={15} />
+                  Reset Defaults
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveCommands}
+                  disabled={saving}
+                  className="btn-primary"
+                  style={{
+                    backgroundColor: '#6366f1',
+                    borderColor: '#4f46e5',
+                    color: '#ffffff',
+                    fontWeight: '800',
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+                    cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {saving ? <Loader size={16} className="spin" /> : <Save size={16} />}
+                  <span>Save Bot Commands</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Global Prefix Card */}
+          <div className="glass-panel" style={{
+            padding: '20px',
+            backgroundColor: '#0f172a',
+            borderColor: '#334155',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', color: '#f8fafc', fontSize: '0.95rem' }}>
+                <Sliders size={18} color="#818cf8" />
+                Default Server Command Prefix
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Global fallback prefix. Command triggers below can also include their own exact prefixes (like <code>s?u</code> or <code>?xp</code>).
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {['?', '!', '.', '/', 's?', '$'].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handlePrimaryCommandChange('customPrefix', p)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: (settings?.commands?.customPrefix || '?') === p ? '1.5px solid #818cf8' : '1px solid #334155',
+                      backgroundColor: (settings?.commands?.customPrefix || '?') === p ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.04)',
+                      color: (settings?.commands?.customPrefix || '?') === p ? '#818cf8' : '#94a3b8',
+                      fontSize: '0.8rem',
+                      fontWeight: '800',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                type="text"
+                maxLength={4}
+                value={settings?.commands?.customPrefix || '?'}
+                onChange={(e) => handlePrimaryCommandChange('customPrefix', e.target.value)}
+                style={{
+                  width: '60px',
+                  padding: '8px 10px',
+                  backgroundColor: '#1e293b',
+                  border: '1.5px solid #475569',
+                  borderRadius: '8px',
+                  color: '#ffffff',
+                  fontSize: '0.9rem',
+                  fontWeight: '800',
+                  textAlign: 'center',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Grid of Command Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '20px' }}>
+
+            {/* COMMAND 1: KNOWING XP & RANK (?xp) */}
+            <div className="glass-panel" style={{
+              backgroundColor: '#0f172a',
+              borderColor: settings?.commands?.xpEnabled !== false ? 'rgba(234, 179, 8, 0.3)' : '#334155',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              position: 'relative'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#eab308'
+                  }}>
+                    <Award size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#ffffff' }}>
+                      Knowing XP & Level Command
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      Inspect member level, rank, and voice hours
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    color: settings?.commands?.xpEnabled !== false ? '#34d399' : '#94a3b8',
+                    textTransform: 'uppercase'
+                  }}>
+                    {settings?.commands?.xpEnabled !== false ? 'Active' : 'Disabled'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={settings?.commands?.xpEnabled !== false}
+                    onChange={() => handleToggleCommand('xpEnabled')}
+                    style={{ width: '18px', height: '18px', accentColor: '#eab308', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Primary Command Trigger <span style={{ color: '#eab308' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={settings?.commands?.xpCommand || '?xp'}
+                      onChange={(e) => handlePrimaryCommandChange('xpCommand', e.target.value)}
+                      placeholder="e.g. ?xp or !xp or rank"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        backgroundColor: '#1e293b',
+                        border: '1.5px solid rgba(234, 179, 8, 0.4)',
+                        borderRadius: '10px',
+                        color: '#ffffff',
+                        fontSize: '0.9rem',
+                        fontWeight: '700',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Alternative Aliases (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={xpAliasesStr}
+                    onChange={(e) => handleAliasChange('xpAliases', e.target.value)}
+                    placeholder="e.g. ?rank, !xp, s?xp"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {/* Alias pills */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {(settings?.commands?.xpAliases || []).map((alias, idx) => (
+                      <span key={idx} style={{
+                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                        color: '#facc15',
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace',
+                        fontWeight: '700'
+                      }}>
+                        {alias}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Example Syntax Box */}
+                <div style={{
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px dashed #334155',
+                  fontSize: '0.76rem',
+                  color: '#94a3b8'
+                }}>
+                  <strong style={{ color: '#e2e8f0' }}>Discord Usage:</strong>
+                  <div style={{ fontFamily: 'monospace', color: '#38bdf8', marginTop: '3px' }}>
+                    {settings?.commands?.xpCommand || '?xp'} <em>(view own card)</em>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', color: '#38bdf8', marginTop: '2px' }}>
+                    {settings?.commands?.xpCommand || '?xp'} @member <em>(view member)</em>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COMMAND 2: USER ACTIVITY & STATBOT STATS (s?u) */}
+            <div className="glass-panel" style={{
+              backgroundColor: '#0f172a',
+              borderColor: settings?.commands?.userStatusEnabled !== false ? 'rgba(16, 185, 129, 0.3)' : '#334155',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              position: 'relative'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#10b981'
+                  }}>
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#ffffff' }}>
+                      User Activity / Statbot Command
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      14-day voice activity & message wave charts (s?u)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    color: settings?.commands?.userStatusEnabled !== false ? '#34d399' : '#94a3b8',
+                    textTransform: 'uppercase'
+                  }}>
+                    {settings?.commands?.userStatusEnabled !== false ? 'Active' : 'Disabled'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={settings?.commands?.userStatusEnabled !== false}
+                    onChange={() => handleToggleCommand('userStatusEnabled')}
+                    style={{ width: '18px', height: '18px', accentColor: '#10b981', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Primary Command Trigger <span style={{ color: '#10b981' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={settings?.commands?.userStatusCommand || 's?u'}
+                    onChange={(e) => handlePrimaryCommandChange('userStatusCommand', e.target.value)}
+                    placeholder="e.g. s?u or s?user or !user"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.9rem',
+                      fontWeight: '700',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Alternative Aliases (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={userStatusAliasesStr}
+                    onChange={(e) => handleAliasChange('userStatusAliases', e.target.value)}
+                    placeholder="e.g. s?user, ?user, !user"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {(settings?.commands?.userStatusAliases || []).map((alias, idx) => (
+                      <span key={idx} style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        color: '#6ee7b7',
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace',
+                        fontWeight: '700'
+                      }}>
+                        {alias}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Example Syntax Box */}
+                <div style={{
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px dashed #334155',
+                  fontSize: '0.76rem',
+                  color: '#94a3b8'
+                }}>
+                  <strong style={{ color: '#e2e8f0' }}>Discord Usage:</strong>
+                  <div style={{ fontFamily: 'monospace', color: '#34d399', marginTop: '3px' }}>
+                    {settings?.commands?.userStatusCommand || 's?u'} <em>(view own activity)</em>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', color: '#34d399', marginTop: '2px' }}>
+                    {settings?.commands?.userStatusCommand || 's?u'} @member <em>(view member)</em>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COMMAND 3: FULL SERVER STATUS & STATS (s?s) */}
+            <div className="glass-panel" style={{
+              backgroundColor: '#0f172a',
+              borderColor: settings?.commands?.serverStatusEnabled !== false ? 'rgba(99, 102, 241, 0.4)' : '#334155',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              position: 'relative'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#818cf8'
+                  }}>
+                    <Server size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#ffffff' }}>
+                      Full Server Status & Stats Command
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      Full server stats, members count, channels & latency
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    color: settings?.commands?.serverStatusEnabled !== false ? '#818cf8' : '#94a3b8',
+                    textTransform: 'uppercase'
+                  }}>
+                    {settings?.commands?.serverStatusEnabled !== false ? 'Active' : 'Disabled'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={settings?.commands?.serverStatusEnabled !== false}
+                    onChange={() => handleToggleCommand('serverStatusEnabled')}
+                    style={{ width: '18px', height: '18px', accentColor: '#6366f1', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Primary Command Trigger <span style={{ color: '#818cf8' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={settings?.commands?.serverStatusCommand || 's?s'}
+                    onChange={(e) => handlePrimaryCommandChange('serverStatusCommand', e.target.value)}
+                    placeholder="e.g. s?s or ?server or ?serverinfo"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1.5px solid rgba(99, 102, 241, 0.4)',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.9rem',
+                      fontWeight: '700',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Alternative Aliases (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={serverStatusAliasesStr}
+                    onChange={(e) => handleAliasChange('serverStatusAliases', e.target.value)}
+                    placeholder="e.g. s?server, ?server, ?serverinfo, !server, s?status"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {(settings?.commands?.serverStatusAliases || []).map((alias, idx) => (
+                      <span key={idx} style={{
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        color: '#a5b4fc',
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace',
+                        fontWeight: '700'
+                      }}>
+                        {alias}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Example Syntax Box */}
+                <div style={{
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px dashed #334155',
+                  fontSize: '0.76rem',
+                  color: '#94a3b8'
+                }}>
+                  <strong style={{ color: '#e2e8f0' }}>Discord Usage:</strong>
+                  <div style={{ fontFamily: 'monospace', color: '#a5b4fc', marginTop: '3px' }}>
+                    {settings?.commands?.serverStatusCommand || 's?s'} <em>(shows complete server breakdown)</em>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', color: '#a5b4fc', marginTop: '2px' }}>
+                    ?server / ?serverinfo <em>(or any configured alias)</em>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COMMAND 4: SHIP & COMPATIBILITY (ship) */}
+            <div className="glass-panel" style={{
+              backgroundColor: '#0f172a',
+              borderColor: settings?.commands?.shipEnabled !== false ? 'rgba(244, 63, 94, 0.3)' : '#334155',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              position: 'relative'
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(244, 63, 94, 0.15)',
+                    border: '1px solid rgba(244, 63, 94, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#f43f5e'
+                  }}>
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#ffffff' }}>
+                      Ship Compatibility Command
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      Love score meter & card generator
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    color: settings?.commands?.shipEnabled !== false ? '#fb7185' : '#94a3b8',
+                    textTransform: 'uppercase'
+                  }}>
+                    {settings?.commands?.shipEnabled !== false ? 'Active' : 'Disabled'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={settings?.commands?.shipEnabled !== false}
+                    onChange={() => handleToggleCommand('shipEnabled')}
+                    style={{ width: '18px', height: '18px', accentColor: '#f43f5e', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Primary Command Trigger <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={settings?.commands?.shipCommand || 'ship'}
+                    onChange={(e) => handlePrimaryCommandChange('shipCommand', e.target.value)}
+                    placeholder="e.g. ship or ?ship"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.9rem',
+                      fontWeight: '700',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#cbd5e1', marginBottom: '6px' }}>
+                    Alternative Aliases (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={shipAliasesStr}
+                    onChange={(e) => handleAliasChange('shipAliases', e.target.value)}
+                    placeholder="e.g. ?ship, !ship, /ship"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '10px',
+                      color: '#ffffff',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {(settings?.commands?.shipAliases || []).map((alias, idx) => (
+                      <span key={idx} style={{
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid rgba(244, 63, 94, 0.3)',
+                        color: '#fda4af',
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontFamily: 'monospace',
+                        fontWeight: '700'
+                      }}>
+                        {alias}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Example Syntax Box */}
+                <div style={{
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px dashed #334155',
+                  fontSize: '0.76rem',
+                  color: '#94a3b8'
+                }}>
+                  <strong style={{ color: '#e2e8f0' }}>Discord Usage:</strong>
+                  <div style={{ fontFamily: 'monospace', color: '#fda4af', marginTop: '3px' }}>
+                    {settings?.commands?.shipCommand || 'ship'} @user1 @user2
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Interactive Live Command Tester & Simulator Sandbox */}
+          {(() => {
+            const testResult = testCommandMatch();
+
+            return (
+              <div className="glass-panel" style={{
+                backgroundColor: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '16px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Play size={18} color="#818cf8" />
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#ffffff' }}>
+                      Live Command Matcher & Preview Sandbox
+                    </h4>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Simulate how the bot parses user messages in Discord chat in real-time
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '260px', position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={testCommandInput}
+                      onChange={(e) => setTestCommandInput(e.target.value)}
+                      placeholder="Type a command to test (e.g. ?xp or s?u or s?s or ?server)..."
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        backgroundColor: '#1e293b',
+                        border: '1.5px solid #475569',
+                        borderRadius: '10px',
+                        color: '#ffffff',
+                        fontSize: '0.95rem',
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Preset quick test buttons */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      settings?.commands?.xpCommand || '?xp',
+                      settings?.commands?.userStatusCommand || 's?u',
+                      settings?.commands?.serverStatusCommand || 's?s',
+                      settings?.commands?.shipCommand || 'ship'
+                    ].map((btnText, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setTestCommandInput(btnText)}
+                        style={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#e2e8f0',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontFamily: 'monospace',
+                          cursor: 'pointer',
+                          fontWeight: '700'
+                        }}
+                      >
+                        {btnText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Simulation Output Card */}
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  backgroundColor: testResult.matched ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+                  border: testResult.matched ? '1.5px solid rgba(16, 185, 129, 0.3)' : '1.5px solid rgba(239, 68, 68, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  {testResult.matched ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckCircle2 size={18} color="#34d399" />
+                          <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#34d399' }}>
+                            MATCH SUCCESSFUL: {testResult.commandTitle}
+                          </span>
+                        </div>
+                        <span style={{
+                          backgroundColor: testResult.badgeColor,
+                          color: '#ffffff',
+                          fontSize: '0.72rem',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontWeight: '800',
+                          fontFamily: 'monospace'
+                        }}>
+                          Trigger: {testResult.matchedTrigger}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                        {testResult.description}
+                      </div>
+
+                      <div style={{
+                        marginTop: '6px',
+                        padding: '10px 12px',
+                        backgroundColor: '#1e293b',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                          Simulated Response:
+                        </span>
+                        <span style={{
+                          fontSize: '0.76rem',
+                          color: '#38bdf8',
+                          fontWeight: '700',
+                          fontFamily: 'monospace'
+                        }}>
+                          {testResult.previewType === 'embed' ? '📦 Rich Discord Embed' : '🖼️ Canvas Image Attachment'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontSize: '0.85rem' }}>
+                      <AlertTriangle size={18} color="#f87171" style={{ flexShrink: 0 }} />
+                      <span>{testResult.reason}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Sticky Bottom Save Action Bar */}
+          <div style={{
+            position: 'sticky',
+            bottom: '16px',
+            backgroundColor: '#1e293b',
+            border: '1px solid rgba(99, 102, 241, 0.4)',
+            borderRadius: '16px',
+            padding: '16px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            zIndex: 100
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Sparkles size={20} color="#818cf8" />
+              <div>
+                <div style={{ fontWeight: '800', color: '#ffffff', fontSize: '0.9rem' }}>
+                  Ready to deploy these command changes?
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  Click save to apply them to Discord instantly without restarting the bot.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={handleResetCommandsToDefaults}
+                className="btn-secondary"
+                style={{ padding: '10px 18px', fontSize: '0.85rem', fontWeight: '700' }}
+              >
+                Reset Defaults
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveCommands}
+                disabled={saving}
+                style={{
+                  backgroundColor: '#6366f1',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 22px',
+                  borderRadius: '10px',
+                  fontWeight: '800',
+                  fontSize: '0.9rem',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)'
+                }}
+              >
+                {saving ? <Loader size={16} className="spin" /> : <Save size={16} />}
+                <span>Save All Bot Commands</span>
+              </button>
+            </div>
           </div>
 
         </div>
