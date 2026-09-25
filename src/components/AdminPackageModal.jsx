@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
-import { 
-  X, 
-  ShieldCheck, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  RefreshCw, 
-  Search, 
-  Sparkles, 
-  Loader2, 
+import {
+  X,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Loader2,
   AlertCircle,
   CreditCard,
   QrCode,
@@ -123,7 +123,7 @@ export default function AdminPackageModal({ onClose }) {
 
   // Filtered Payments
   const filteredPayments = payments.filter((p) => {
-    const matchesSearch = 
+    const matchesSearch =
       (p.username && p.username.toLowerCase().includes(search.toLowerCase())) ||
       (p.paymentId && p.paymentId.toLowerCase().includes(search.toLowerCase())) ||
       (p.planName && p.planName.toLowerCase().includes(search.toLowerCase())) ||
@@ -247,7 +247,7 @@ export default function AdminPackageModal({ onClose }) {
               <RefreshCw size={17} className={loading ? 'animate-spin' : ''} />
             </button>
 
-            <button 
+            <button
               onClick={onClose}
               style={{
                 backgroundColor: 'rgba(255,255,255,0.15)',
@@ -450,7 +450,7 @@ export default function AdminPackageModal({ onClose }) {
                   >
                     {/* Top Card Row */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                      
+
                       {/* User Info */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{

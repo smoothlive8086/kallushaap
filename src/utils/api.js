@@ -221,10 +221,6 @@ export const api = {
   }),
   getBulkNicknameStatus: (guildId) => request(`/admin/guilds/${guildId}/bulk-nickname/status`),
   cancelBulkNickname: (guildId) => request(`/admin/guilds/${guildId}/bulk-nickname/cancel`, { method: 'POST' }),
-  resolveYoutubeChannel: (guildId, channelUrl) => request(`/admin/guilds/${guildId}/youtube/resolve`, {
-    method: 'POST',
-    body: JSON.stringify({ channelUrl })
-  }),
 
   // Member XP & Leveling API Endpoints
   getLevelLeaderboard: (guildId, params = {}) => {
@@ -242,6 +238,29 @@ export const api = {
     method: 'POST'
   }),
   getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`),
-  autoGenerateLevelRoles: (guildId) => request(`/guilds/${guildId}/levels/auto-generate-roles`, { method: 'POST' })
+  autoGenerateLevelRoles: (guildId) => request(`/guilds/${guildId}/levels/auto-generate-roles`, { method: 'POST' }),
+
+  // Custom VC & Voice Manager Endpoints
+  getCustomVcDetails: (guildId) => request(`/admin/guilds/${guildId}/custom-vc`),
+  saveCustomVcSettings: (guildId, data) => request(`/admin/guilds/${guildId}/custom-vc/settings`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  autoSetupCustomVc: (guildId) => request(`/admin/guilds/${guildId}/custom-vc/auto-setup`, {
+    method: 'POST'
+  }),
+  sendVoiceManagerPanel: (guildId, channelId) => request(`/admin/guilds/${guildId}/custom-vc/send-panel`, {
+    method: 'POST',
+    body: JSON.stringify({ channelId })
+  }),
+  createCustomVcChannel: (guildId, data) => request(`/admin/guilds/${guildId}/custom-vc/create-channel`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  performCustomVcAction: (guildId, channelId, action, params = {}) => request(`/admin/guilds/${guildId}/custom-vc/channels/${channelId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action, ...params })
+  })
 };
+
 

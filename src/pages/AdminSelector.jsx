@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import AdminServerSettings from '../components/AdminServerSettings';
+import AdminCustomVc from '../components/AdminCustomVc';
 import {
   LogOut, Search, RefreshCw, ShieldCheck, CheckCircle2, XCircle, Clock,
   Trash2, RotateCcw, Tag, KeyRound, Loader2, Sparkles, AlertTriangle,
   Package, Plus, Edit3, Check, Layers, Crown, Sparkles as GemIcon,
-  Eye, Image as ImageIcon, QrCode, Upload, Server
+  Eye, Image as ImageIcon, QrCode, Upload, Server, Volume2, Mic, Radio
 } from 'lucide-react';
 
 export default function AdminSelector({ user, onLogout }) {
@@ -623,6 +624,41 @@ export default function AdminSelector({ user, onLogout }) {
                   fontWeight: '800'
                 }}>
                   {guilds.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setMainTab('CUSTOM_VC');
+                  fetchGuildsList();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: mainTab === 'CUSTOM_VC' ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  backgroundColor: mainTab === 'CUSTOM_VC' ? '#6366f1' : 'rgba(15, 23, 42, 0.6)',
+                  color: mainTab === 'CUSTOM_VC' ? '#ffffff' : '#94a3b8',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Volume2 size={18} />
+                <span style={{ flex: 1 }}>Custom VC</span>
+                <span style={{
+                  backgroundColor: mainTab === 'CUSTOM_VC' ? 'rgba(255,255,255,0.25)' : 'rgba(16, 185, 129, 0.15)',
+                  color: mainTab === 'CUSTOM_VC' ? '#ffffff' : '#34d399',
+                  fontSize: '0.72rem',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  fontWeight: '800'
+                }}>
+                  NEW
                 </span>
               </button>
             </div>
@@ -1701,6 +1737,86 @@ export default function AdminSelector({ user, onLogout }) {
                     </div>
                   ) : selectedGuildId ? (
                     <AdminServerSettings guildId={selectedGuildId} initialTab="levels" />
+                  ) : null}
+                </>
+              )}
+
+              {/* TAB 5: CUSTOM VC & VOICE MANAGER */}
+              {mainTab === 'CUSTOM_VC' && (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    marginBottom: '24px',
+                    paddingBottom: '16px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <div>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Volume2 size={26} style={{ color: '#818cf8' }} />
+                        Custom VC & Voice Manager Control Panel
+                      </h2>
+                      <p style={{ fontSize: '0.83rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                        Configure Join-to-Create hubs, manage active custom voice channels & send interactive Voice Manager control panels to Discord channels.
+                      </p>
+                    </div>
+
+                    {/* Server Selector Dropdown */}
+                    {guilds.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: '700' }}>Select Server:</span>
+                        <select
+                          value={selectedGuildId}
+                          onChange={(e) => setSelectedGuildId(e.target.value)}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#0f172a',
+                            color: '#f8fafc',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            borderRadius: '10px',
+                            fontSize: '0.88rem',
+                            fontWeight: '700',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {guilds.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name} {g.memberCount ? `(${g.memberCount} members)` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {guildsLoading ? (
+                    <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                      <Loader2 size={32} className="spin" style={{ color: '#6366f1', marginBottom: '12px' }} />
+                      <div>Loading Servers...</div>
+                    </div>
+                  ) : guilds.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '48px 20px',
+                      backgroundColor: '#0f172a',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8'
+                    }}>
+                      <Volume2 size={36} color="#64748b" style={{ margin: '0 auto 12px auto' }} />
+                      <div style={{ fontWeight: '700', fontSize: '1rem', color: '#f8fafc' }}>
+                        No Discord Servers Found
+                      </div>
+                      <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                        Ensure the Discord Bot is connected and added to your server.
+                      </div>
+                    </div>
+                  ) : selectedGuildId ? (
+                    <AdminCustomVc guildId={selectedGuildId} />
                   ) : null}
                 </>
               )}

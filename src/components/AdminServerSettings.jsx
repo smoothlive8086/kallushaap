@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../utils/api';
 import { Edit3, Trash2, Plus, Folder, Hash, Volume2, Image, Server, Check, X, Loader, Users, Search, AlertTriangle, Save, Award, Zap, MessageSquare } from 'lucide-react';
 import { io } from 'socket.io-client';
+import AdminCustomVc from './AdminCustomVc';
 
 
 
@@ -1116,6 +1117,28 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         >
           <Award size={16} color="#eab308" />
           XP & Member Levels
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubTabClick('custom-vc')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: activeSubTab === 'custom-vc' ? '#ffffff' : 'var(--text-secondary)',
+            fontSize: '0.95rem',
+            fontWeight: activeSubTab === 'custom-vc' ? '700' : '400',
+            cursor: 'pointer',
+            padding: '10px 16px',
+            borderBottom: activeSubTab === 'custom-vc' ? '2px solid var(--primary)' : '2px solid transparent',
+            transition: 'all 0.2s ease',
+            fontFamily: 'Outfit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Volume2 size={16} color="#818cf8" />
+          Custom VC
         </button>
       </div>
 
@@ -3216,6 +3239,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             </form>
           </div>
         </div>
+      )}
+
+      {activeSubTab === 'custom-vc' && (
+        <AdminCustomVc guildId={guildId} />
       )}
 
       <style dangerouslySetInnerHTML={{
