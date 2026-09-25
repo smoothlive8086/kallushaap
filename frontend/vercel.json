@@ -1,0 +1,21 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://nokia.vexanode.gg:19192/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "http://nokia.vexanode.gg:19192/uploads/:path*"
+    },
+    {
+      "source": "/socket.io/:path*",
+      "destination": "http://nokia.vexanode.gg:19192/socket.io/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
