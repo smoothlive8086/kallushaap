@@ -148,11 +148,6 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  getGuildCommands: (guildId) => request(`/admin/guilds/${guildId}/commands`),
-  saveGuildCommands: (guildId, commands) => request(`/admin/guilds/${guildId}/commands`, {
-    method: 'POST',
-    body: JSON.stringify({ commands })
-  }),
 
   // Server Control & Admin Management Endpoints
   getAdminGuildDetails: async (guildId) => {
