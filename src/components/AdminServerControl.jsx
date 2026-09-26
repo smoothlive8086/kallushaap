@@ -1280,8 +1280,21 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
               <Clock size={16} />
               REAL-TIME AUDIT TRAIL
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#f8fafc', margin: '4px 0 0 0' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#f8fafc', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Moderation Action Logs
+              {filteredLogs.length > 0 && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  color: '#a855f7',
+                  backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  padding: '2px 9px',
+                  borderRadius: '12px'
+                }}>
+                  {filteredLogs.length}
+                </span>
+              )}
             </h3>
             <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
               Complete audit trail of all ban, kick, blacklist, timeout, mute, and deafen actions with full reasons.
@@ -1338,7 +1351,7 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
           </div>
         </div>
 
-        {/* Logs Table / Cards */}
+        {/* Logs Table / Cards inside Scroll Box */}
         {filteredLogs.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -1357,98 +1370,135 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredLogs.map(log => {
-              let badgeColor = '#ef4444';
-              if (log.action === 'KICK') badgeColor = '#f59e0b';
-              if (log.action === 'BLACKLIST') badgeColor = '#f43f5e';
-              if (log.action === 'UNBLACKLIST' || log.action === 'UNTIMEOUT' || log.action === 'UNMUTE' || log.action === 'UNDEAFEN') badgeColor = '#10b981';
-              if (log.action === 'TIMEOUT') badgeColor = '#eab308';
-              if (log.action === 'MUTE') badgeColor = '#38bdf8';
-              if (log.action === 'DEAFEN') badgeColor = '#fb923c';
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div
+              className="custom-scrollbar"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '440px',
+                overflowY: 'auto',
+                paddingRight: '6px',
+                paddingBottom: '2px',
+                overscrollBehavior: 'contain'
+              }}
+            >
+              {filteredLogs.map(log => {
+                let badgeColor = '#ef4444';
+                if (log.action === 'KICK') badgeColor = '#f59e0b';
+                if (log.action === 'BLACKLIST') badgeColor = '#f43f5e';
+                if (log.action === 'UNBLACKLIST' || log.action === 'UNTIMEOUT' || log.action === 'UNMUTE' || log.action === 'UNDEAFEN') badgeColor = '#10b981';
+                if (log.action === 'TIMEOUT') badgeColor = '#eab308';
+                if (log.action === 'MUTE') badgeColor = '#38bdf8';
+                if (log.action === 'DEAFEN') badgeColor = '#fb923c';
 
-              return (
-                <div
-                  key={log._id || `${log.targetId}-${log.createdAt}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '14px',
-                    padding: '14px 18px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.025)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                    borderLeft: `4px solid ${badgeColor}`
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    {log.targetAvatar ? (
-                      <img
-                        src={log.targetAvatar}
-                        alt=""
-                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: badgeColor,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        fontWeight: '800',
-                        fontSize: '0.85rem'
-                      }}>
-                        {log.action.slice(0, 2)}
-                      </div>
-                    )}
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{
-                          fontSize: '0.72rem',
+                return (
+                  <div
+                    key={log._id || `${log.targetId}-${log.createdAt}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '14px',
+                      padding: '14px 18px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.025)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      borderLeft: `4px solid ${badgeColor}`,
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.025)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      {log.targetAvatar ? (
+                        <img
+                          src={log.targetAvatar}
+                          alt=""
+                          style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          backgroundColor: badgeColor,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
                           fontWeight: '800',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: `${badgeColor}25`,
-                          color: badgeColor
+                          fontSize: '0.85rem'
                         }}>
-                          {log.action}
-                        </span>
-                        <span style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.9rem' }}>
-                          {log.targetTag || `User (${log.targetId})`}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          ({log.targetId})
-                        </span>
-                        {log.duration && (
-                          <span style={{ fontSize: '0.72rem', color: '#eab308', fontWeight: '700' }}>
-                            • {log.duration}
+                          {log.action.slice(0, 2)}
+                        </div>
+                      )}
+
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: '800',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: `${badgeColor}25`,
+                            color: badgeColor
+                          }}>
+                            {log.action}
                           </span>
-                        )}
-                      </div>
+                          <span style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.9rem' }}>
+                            {log.targetTag || `User (${log.targetId})`}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            ({log.targetId})
+                          </span>
+                          {log.duration && (
+                            <span style={{ fontSize: '0.72rem', color: '#eab308', fontWeight: '700' }}>
+                              • {log.duration}
+                            </span>
+                          )}
+                        </div>
 
-                      <div style={{ fontSize: '0.84rem', color: '#cbd5e1', marginTop: '4px' }}>
-                        <strong>Reason:</strong> {log.reason || 'No reason provided'}
+                        <div style={{ fontSize: '0.84rem', color: '#cbd5e1', marginTop: '4px' }}>
+                          <strong>Reason:</strong> {log.reason || 'No reason provided'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#94a3b8' }}>
+                      <div>
+                        <strong>Mod:</strong> {log.moderatorTag || 'Staff'}
+                      </div>
+                      <div style={{ marginTop: '2px', color: '#64748b' }}>
+                        {log.source === 'DASHBOARD' ? '🌐 Dashboard' : (log.channelName ? `#${log.channelName}` : 'Discord')} • {new Date(log.createdAt).toLocaleString()}
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#94a3b8' }}>
-                    <div>
-                      <strong>Mod:</strong> {log.moderatorTag || 'Staff'}
-                    </div>
-                    <div style={{ marginTop: '2px', color: '#64748b' }}>
-                      {log.source === 'DASHBOARD' ? '🌐 Dashboard' : (log.channelName ? `#${log.channelName}` : 'Discord')} • {new Date(log.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredLogs.length > 4 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 4px 0 4px',
+                fontSize: '0.74rem',
+                color: '#64748b'
+              }}>
+                <span>Showing {filteredLogs.length} {filteredLogs.length === 1 ? 'log' : 'logs'}</span>
+                <span>Scroll down inside box to view older logs ⬇</span>
+              </div>
+            )}
           </div>
         )}
       </div>
